@@ -3,6 +3,8 @@ import { getBscPublicClient } from "@/lib/chain/bsc";
 import { erc20MetadataAbi } from "@/lib/chain/erc20";
 import { rugBountyVaultAbi } from "@/lib/chain/rug-bounty";
 
+const cleanEnv = (value?: string | null) => value?.trim() || undefined;
+
 export type LiveBondRecord = {
   id: string;
   tokenName: string;
@@ -20,7 +22,7 @@ export type LiveBondRecord = {
 };
 
 export function getConfiguredVaultAddress(): Address | null {
-  const raw = process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS || process.env.RUG_BOUNTY_VAULT_ADDRESS;
+  const raw = cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) || cleanEnv(process.env.RUG_BOUNTY_VAULT_ADDRESS);
   return raw ? getAddress(raw) : null;
 }
 

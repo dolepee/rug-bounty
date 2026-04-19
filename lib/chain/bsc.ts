@@ -2,8 +2,10 @@ import { createPublicClient, createWalletClient, fallback, http, webSocket, type
 import { privateKeyToAccount } from "viem/accounts";
 import { bsc } from "viem/chains";
 
-const defaultHttpRpc = process.env.BSC_RPC_URL || "https://bsc-rpc.publicnode.com";
-const defaultWsRpc = process.env.BSC_WS_RPC_URL;
+const cleanEnv = (value?: string | null) => value?.trim() || undefined;
+
+const defaultHttpRpc = cleanEnv(process.env.BSC_RPC_URL) || "https://bsc-rpc.publicnode.com";
+const defaultWsRpc = cleanEnv(process.env.BSC_WS_RPC_URL);
 
 const fallbackRpcs = [
   defaultHttpRpc,
@@ -38,7 +40,7 @@ export function getBscPublicClient(): PublicClient {
 export const bscRpcUrl = defaultHttpRpc;
 
 export function getAgentWalletClient() {
-  const privateKey = process.env.PRIVATE_KEY as `0x${string}` | undefined;
+  const privateKey = cleanEnv(process.env.PRIVATE_KEY) as `0x${string}` | undefined;
   if (!privateKey) {
     throw new Error("Missing PRIVATE_KEY env var.");
   }

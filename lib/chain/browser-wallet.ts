@@ -9,8 +9,10 @@ type EthereumProvider = {
   removeListener?(event: string, listener: (...args: unknown[]) => void): void;
 };
 
+const cleanEnv = (value?: string | null) => value?.trim() || undefined;
+
 const BSC_CHAIN_ID_HEX = "0x38";
-const publicRpcUrl = process.env.NEXT_PUBLIC_BSC_RPC_URL || "https://bsc-rpc.publicnode.com";
+const publicRpcUrl = cleanEnv(process.env.NEXT_PUBLIC_BSC_RPC_URL) || "https://bsc-rpc.publicnode.com";
 
 declare global {
   interface Window {

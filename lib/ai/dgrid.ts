@@ -6,6 +6,8 @@ import {
   type ClassifiedPromise,
 } from "@/lib/ai/classifier";
 
+const cleanEnv = (value?: string | null) => value?.trim() || undefined;
+
 type BrokenOathInput = {
   ticker: string;
   floor: string;
@@ -26,9 +28,9 @@ const classificationResponseSchema = z.object({
   classified: z.array(classifiedPromiseSchema),
 });
 
-const dgridApiKey = process.env.DGRID_API_KEY;
-const dgridBaseUrl = process.env.DGRID_BASE_URL || "https://api.dgrid.ai/v1";
-const dgridModel = process.env.DGRID_MODEL || "openai/gpt-4o";
+const dgridApiKey = cleanEnv(process.env.DGRID_API_KEY);
+const dgridBaseUrl = cleanEnv(process.env.DGRID_BASE_URL) || "https://api.dgrid.ai/v1";
+const dgridModel = cleanEnv(process.env.DGRID_MODEL) || "openai/gpt-4o";
 
 function getDgridClient() {
   if (!dgridApiKey) {
@@ -40,7 +42,7 @@ function getDgridClient() {
     baseURL: dgridBaseUrl,
     defaultHeaders: {
       "X-Title": "RugBounty",
-      ...(process.env.NEXT_PUBLIC_APP_URL ? { "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL } : {}),
+      ...(cleanEnv(process.env.NEXT_PUBLIC_APP_URL) ? { "HTTP-Referer": cleanEnv(process.env.NEXT_PUBLIC_APP_URL) } : {}),
     },
   });
 }

@@ -39,7 +39,8 @@ type ParsedLaunchEvidence = {
   rawLogIndex: number;
 };
 
-const vaultAddress = process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS as Address | undefined;
+const cleanEnv = (value?: string | null) => value?.trim() || undefined;
+const vaultAddress = cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) as Address | undefined;
 
 const initialText = `I will hold at least 1.05M BIBI tokens for 3 hours.\nBinance listing soon.\nDaily updates.`;
 

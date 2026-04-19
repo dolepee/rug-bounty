@@ -1,0 +1,36 @@
+{
+  "name": "rug-bounty",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node ./node_modules/next/dist/bin/next dev",
+    "build": "node ./node_modules/next/dist/bin/next build",
+    "start": "node ./node_modules/next/dist/bin/next start",
+    "lint": "eslint .",
+    "compile:contract": "npx solcjs --bin --abi -o out contracts/RugBountyVault.sol",
+    "agent:dev": "node agent/index.mjs",
+    "wallets:generate": "node scripts/generate-wallets.mjs",
+    "deploy": "node scripts/deploy.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.542.0",
+    "next": "16.2.3",
+    "openai": "^6.34.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "viem": "^2.48.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.3",
+    "solc": "^0.8.34",
+    "tailwindcss": "^4",
+    "tsx": "^4.20.5",
+    "typescript": "^5"
+  }
+}

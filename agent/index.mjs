@@ -1,0 +1,208 @@
+import { createPublicClient, createWalletClient, fallback, getAddress, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { bsc } from "viem/chains";
+
+const primaryRpc = process.env.BSC_RPC_URL || process.env.NEXT_PUBLIC_BSC_RPC_URL || "https://bsc-rpc.publicnode.com";
+const privateKey = process.env.PRIVATE_KEY;
+const vaultAddress = process.env.RUG_BOUNTY_VAULT_ADDRESS || process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS;
+const startBlock = process.env.RUG_BOUNTY_START_BLOCK;
+const pollMs = Number(process.env.RUG_HUNTER_POLL_MS || 15000);
+const fallbackRpcs = [
+  primaryRpc,
+  "https://1rpc.io/bnb",
+  "https://bsc-dataseed.bnbchain.org",
+  "https://bsc-dataseed-public.bnbchain.org",
+];
+
+const rugBountyVaultAbi = [
+  {
+    type: "function",
+    name: "getBond",
+    stateMutability: "view",
+    inputs: [{ name: "bondId", type: "uint256" }],
+    outputs: [
+      {
+        type: "tuple",
+        components: [
+          { name: "creator", type: "address" },
+          { name: "token", type: "address" },
+          { name: "launchTxHash", type: "bytes32" },
+          { name: "launchTimestamp", type: "uint256" },
+          { name: "declaredCreatorWallets", type: "address[]" },
+          { name: "declaredRetainedBalance", type: "uint256" },
+          { name: "baselineTotalSupply", type: "uint256" },
+          { name: "bondAmount", type: "uint256" },
+          { name: "createdAt", type: "uint256" },
+          { name: "expiresAt", type: "uint256" },
+          { name: "oathHash", type: "bytes32" },
+          { name: "rulesHash", type: "bytes32" },
+          { name: "status", type: "uint8" },
+          { name: "slashedTo", type: "address" },
+        ],
+      },
+    ],
+  },
+  {
+    type: "function",
+    name: "currentCreatorBalance",
+    stateMutability: "view",
+    inputs: [{ name: "bondId", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "resolveBond",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "bondId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "event",
+    name: "BondCreated",
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "bondId", type: "uint256" },
+      { indexed: true, name: "creator", type: "address" },
+      { indexed: true, name: "token", type: "address" },
+      { indexed: false, name: "launchTxHash", type: "bytes32" },
+      { indexed: false, name: "launchTimestamp", type: "uint256" },
+      { indexed: false, name: "declaredCreatorWallets", type: "address[]" },
+      { indexed: false, name: "declaredRetainedBalance", type: "uint256" },
+      { indexed: false, name: "baselineTotalSupply", type: "uint256" },
+      { indexed: false, name: "bondAmount", type: "uint256" },
+      { indexed: false, name: "expiresAt", type: "uint256" },
+      { indexed: false, name: "oathHash", type: "bytes32" },
+      { indexed: false, name: "rulesHash", type: "bytes32" },
+    ],
+  },
+];
+
+function createClientTransport() {
+  return fallback(
+    fallbackRpcs.map((url) =>
+      http(url, {
+        batch: true,
+        retryCount: 1,
+        timeout: 15_000,
+      }),
+    ),
+    { rank: false },
+  );
+}
+
+async function main() {
+  if (!privateKey) {
+    throw new Error("Missing PRIVATE_KEY. Fund the generated agent wallet and set it before starting the Rug Hunter.");
+  }
+  if (!vaultAddress) {
+    throw new Error("Missing RUG_BOUNTY_VAULT_ADDRESS. Deploy the vault first.");
+  }
+  if (!startBlock) {
+    throw new Error("Missing RUG_BOUNTY_START_BLOCK. Set it to the block where the vault was deployed.");
+  }
+
+  const account = privateKeyToAccount(privateKey);
+  const client = createPublicClient({
+    chain: bsc,
+    transport: createClientTransport(),
+  });
+  const walletClient = createWalletClient({
+    account,
+    chain: bsc,
+    transport: http(primaryRpc, {
+      retryCount: 1,
+      timeout: 15_000,
+    }),
+  });
+
+  const chainId = await client.getChainId();
+  const normalizedVaultAddress = getAddress(vaultAddress);
+  const activeBondIds = new Set();
+
+  console.log(`[rug-hunter] connected to chain ${chainId}`);
+  console.log(`[rug-hunter] wallet ${account.address}`);
+  console.log(`[rug-hunter] vault ${normalizedVaultAddress}`);
+  console.log(`[rug-hunter] scanning from block ${startBlock}`);
+
+  async function refreshActiveBondIds() {
+    const logs = await client.getLogs({
+      address: normalizedVaultAddress,
+      event: rugBountyVaultAbi.find((item) => item.type === "event" && item.name === "BondCreated"),
+      fromBlock: BigInt(startBlock),
+      toBlock: "latest",
+    });
+
+    for (const log of logs) {
+      activeBondIds.add(log.args.bondId.toString());
+    }
+  }
+
+  async function inspectBond(bondId) {
+    const [bond, currentBalance] = await Promise.all([
+      client.readContract({
+        address: normalizedVaultAddress,
+        abi: rugBountyVaultAbi,
+        functionName: "getBond",
+        args: [BigInt(bondId)],
+      }),
+      client.readContract({
+        address: normalizedVaultAddress,
+        abi: rugBountyVaultAbi,
+        functionName: "currentCreatorBalance",
+        args: [BigInt(bondId)],
+      }),
+    ]);
+
+    if (bond.status !== 0) {
+      activeBondIds.delete(bondId);
+      return;
+    }
+
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    if (now >= bond.expiresAt) {
+      console.log(`[rug-hunter] bond ${bondId} expired; waiting for creator refund path`);
+      return;
+    }
+
+    if (currentBalance >= bond.declaredRetainedBalance) {
+      console.log(`[rug-hunter] bond ${bondId} intact (${currentBalance} >= ${bond.declaredRetainedBalance})`);
+      return;
+    }
+
+    console.log(`[rug-hunter] floor breach on bond ${bondId}; submitting resolveBond`);
+    const hash = await walletClient.writeContract({
+      address: normalizedVaultAddress,
+      abi: rugBountyVaultAbi,
+      functionName: "resolveBond",
+      args: [BigInt(bondId)],
+      account,
+    });
+    console.log(`[rug-hunter] slash tx ${hash}`);
+    await client.waitForTransactionReceipt({ hash });
+    console.log(`[rug-hunter] slash confirmed for bond ${bondId}`);
+    activeBondIds.delete(bondId);
+  }
+
+  async function tick() {
+    await refreshActiveBondIds();
+    for (const bondId of Array.from(activeBondIds)) {
+      try {
+        await inspectBond(bondId);
+      } catch (error) {
+        console.error(`[rug-hunter] bond ${bondId} failed`, error);
+      }
+    }
+  }
+
+  await tick();
+  setInterval(() => {
+    tick().catch((error) => {
+      console.error("[rug-hunter] tick failed", error);
+    });
+  }, pollMs);
+}
+
+main().catch((error) => {
+  console.error("[rug-hunter] fatal", error);
+  process.exit(1);
+});

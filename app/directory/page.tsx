@@ -39,7 +39,7 @@ export default async function DirectoryPage() {
             <div className="mt-6 grid gap-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500">Bond</span>
-                <span>{typeof bond.bondAmountBnb === "number" ? bond.bondAmountBnb.toFixed(2) : Number(bond.bondAmountBnb).toFixed(4)} BNB</span>
+                <span>{Number(bond.bondAmountBnb).toFixed(4)} BNB</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500">Declared floor</span>

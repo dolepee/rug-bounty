@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getBondForPage, showcaseProof } from "@/lib/data/showcase";
 import { bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
@@ -6,7 +7,8 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
   const { id } = await params;
   const bond = await getBondForPage(id);
   if (!bond) notFound();
-  const bondAmountLabel = typeof bond.bondAmountBnb === "number" ? bond.bondAmountBnb.toFixed(2) : Number(bond.bondAmountBnb).toFixed(4);
+  const bondAmountLabel = Number(bond.bondAmountBnb).toFixed(4);
+  const shareCardUrl = `/api/certificate/render?id=${encodeURIComponent(id)}`;
 
   return (
     <section className="section-shell py-12">
@@ -16,6 +18,16 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
             <div className="font-mono text-xs uppercase tracking-[0.22em] text-zinc-500">Bonded Launch Certificate</div>
             <div className="mt-3 text-4xl font-semibold">{bond.ticker}</div>
             <div className="mt-2 text-sm text-zinc-400">{bond.tokenName}</div>
+            <div className="mt-6 overflow-hidden rounded-[1.25rem] border border-white/8 bg-[#0B1018]">
+              <Image
+                src={shareCardUrl}
+                alt={`${bond.ticker} certificate share card`}
+                width={1200}
+                height={630}
+                unoptimized
+                className="h-auto w-full"
+              />
+            </div>
             <div className="mt-8 grid gap-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-zinc-500">Bond</span>
@@ -57,6 +69,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
                     <a className="text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(showcaseProof.bondTxHash)} target="_blank" rel="noreferrer">Bond</a>
                     <a className="text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(showcaseProof.slashTxHash)} target="_blank" rel="noreferrer">Slash</a>
                     <a className="text-sm text-amber-300 hover:text-amber-200" href={fourMemeTokenUrl(bond.tokenAddress)} target="_blank" rel="noreferrer">Four.Meme</a>
+                    <a className="text-sm text-amber-300 hover:text-amber-200" href={shareCardUrl} target="_blank" rel="noreferrer">Share card</a>
                   </div>
                 ) : null}
               </div>

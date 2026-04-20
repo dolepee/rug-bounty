@@ -204,7 +204,7 @@ export default async function HomePage() {
                 <div className="font-semibold text-zinc-100">{bond.ticker}</div>
                 <div className="mt-1 text-zinc-500">{bond.tokenName}</div>
               </div>
-              <div>{typeof bond.bondAmountBnb === "number" ? bond.bondAmountBnb.toFixed(2) : Number(bond.bondAmountBnb).toFixed(4)} BNB</div>
+              <div>{Number(bond.bondAmountBnb).toFixed(4)} BNB</div>
               <div>{bond.declaredFloor}</div>
               <div className={bond.status === "SLASHED" ? "metric-danger" : bond.status === "AT_RISK" ? "metric-warning" : "metric-positive"}>
                 {bond.status}

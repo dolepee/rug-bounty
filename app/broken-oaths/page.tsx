@@ -36,7 +36,7 @@ export default async function BrokenOathsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">Bond paid</span>
-                <span>{typeof bond.bondAmountBnb === "number" ? bond.bondAmountBnb.toFixed(2) : Number(bond.bondAmountBnb).toFixed(4)} BNB</span>
+                <span>{Number(bond.bondAmountBnb).toFixed(4)} BNB</span>
               </div>
             </div>
             <div className="mt-5 rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">

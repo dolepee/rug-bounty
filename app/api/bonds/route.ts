@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAllBonds } from "@/lib/data/store";
+import { getDirectoryBonds } from "@/lib/data/showcase";
 
 export async function GET() {
-  return NextResponse.json({ bonds: getAllBonds() });
+  return NextResponse.json({ bonds: await getDirectoryBonds() });
 }

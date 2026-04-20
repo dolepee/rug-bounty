@@ -1,0 +1,27 @@
+{
+  "name": "rugbounty",
+  "version": "0.1.0",
+  "description": "Callable HTTP skill for Four.Meme launch accountability, oath compilation, and bond monitoring.",
+  "commands": [
+    {
+      "name": "parse_launch",
+      "method": "POST",
+      "path": "/api/skill/parse-launch"
+    },
+    {
+      "name": "compile_oath",
+      "method": "POST",
+      "path": "/api/skill/compile-oath"
+    },
+    {
+      "name": "create_bond_payload",
+      "method": "POST",
+      "path": "/api/skill/create-bond-payload"
+    },
+    {
+      "name": "watch_bond",
+      "method": "GET",
+      "path": "/api/skill/watch-bond/:id"
+    }
+  ]
+}

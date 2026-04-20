@@ -58,9 +58,25 @@ Implemented:
 - Four.Meme TokenManager2 launch parsing
 - DGrid-backed oath classification / compilation with deterministic fallback
 - browser-wallet `createBond` flow on `/create`
+- manual `resolveBond` and `refundAfterExpiry` actions on the live bond page
 - live bond detail / certificate / broken-oaths proof surfaces
+- real certificate share-card render route at `/api/certificate/render`
+- public APIs aligned to the live showcase proof instead of mock rows
 - Rug Hunter Agent watcher and slash path
+- PM2 runtime config for persistent hunter deployment
+- minimal HTTP skill wrapper under `skills/rugbounty` and `/api/skill/*`
+- Ganache-backed contract tests for create / slash / refund / revert paths
 - real mainnet proof loop for launch -> bond -> breach -> slash
+
+Currently proven on mainnet:
+- one real slashed bond (`BIBI`)
+
+Currently proven locally and exposed in-product:
+- clean refund path via `refundAfterExpiry`
+- manual hunter path via `resolveBond`
+
+Not claimed:
+- a second real clean-refund bond already executed on mainnet
 
 ## Commands
 
@@ -69,6 +85,7 @@ npm install
 npm run dev
 npm run build
 npm run lint
+npm run test
 npm run compile:contract
 npm run wallets:generate
 npm run agent:dev
@@ -88,7 +105,34 @@ NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS=
 DGRID_API_KEY=
 DGRID_BASE_URL=https://api.dgrid.ai/v1
 DGRID_MODEL=openai/gpt-4o
+RUG_HUNTER_FEED_PATH=
 ```
+
+## Hunter deployment
+
+Local:
+
+```bash
+npm run agent:dev
+```
+
+Persistent:
+
+```bash
+pm2 start ecosystem.config.cjs --only rug-hunter
+```
+
+## Skill wrapper
+
+Minimal agent-facing commands are exposed at:
+
+- `GET /api/skill/manifest`
+- `POST /api/skill/parse-launch`
+- `POST /api/skill/compile-oath`
+- `POST /api/skill/create-bond-payload`
+- `GET /api/skill/watch-bond/:id`
+
+The bundled manifest is in [skills/rugbounty/manifest.json](/home/qdee/rug-bounty/skills/rugbounty/manifest.json).
 
 ## Demo flow
 
@@ -97,4 +141,4 @@ DGRID_MODEL=openai/gpt-4o
 3. Create the bond from the creator wallet
 4. Breach the retained-balance floor
 5. Let the Rug Hunter Agent call `resolveBond`
-6. Open BscScan proof and the certificate page
+6. Open BscScan proof, the manual action surface, and the certificate share card

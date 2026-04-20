@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBondForPage } from "@/lib/data/showcase";
 import { bscScanAddressUrl, bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
+import { BondActionPanel } from "@/app/bond/[id]/bond-action-panel";
 
 export default async function BondDetailPage({
   params,
@@ -14,8 +15,7 @@ export default async function BondDetailPage({
   const { bondTxHash } = await searchParams;
   const bond = await getBondForPage(id);
   if (!bond) notFound();
-  const bondAmountLabel =
-    typeof bond.bondAmountBnb === "number" ? bond.bondAmountBnb.toFixed(2) : Number(bond.bondAmountBnb).toFixed(4);
+  const bondAmountLabel = Number(bond.bondAmountBnb).toFixed(4);
 
   return (
     <section className="section-shell py-12">
@@ -122,16 +122,7 @@ export default async function BondDetailPage({
             </p>
           </div>
 
-          <div className="surface rounded-3xl p-6">
-            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Action surface</div>
-            <div className="mt-4 space-y-3 text-sm text-zinc-400">
-              <p>Anyone can attempt `resolveBond`. If the floor is intact, the tx reverts. If the current balance is below the declared floor, the caller takes the bond.</p>
-              <p>The autonomous Rug Hunter Agent is the default caller in the demo. A human hunter path still exists for transparency.</p>
-            </div>
-            <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
-              Manual hunter action is permissionless in the product. The vault always re-checks live state onchain.
-            </div>
-          </div>
+          <BondActionPanel bondId={bond.id} creator={bond.creator} status={bond.status} expiresAtIso={bond.expiresAtIso} />
 
           <Link href={`/certificate/${bond.id}`} className="surface block rounded-3xl p-6 transition hover:border-amber-500/25 hover:bg-white/[0.05]">
             <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Certificate</div>

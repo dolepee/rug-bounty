@@ -1,12 +1,15 @@
 import { createPublicClient, createWalletClient, fallback, getAddress, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { bsc } from "viem/chains";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 const primaryRpc = process.env.BSC_RPC_URL || process.env.NEXT_PUBLIC_BSC_RPC_URL || "https://bsc-rpc.publicnode.com";
 const privateKey = process.env.PRIVATE_KEY;
 const vaultAddress = process.env.RUG_BOUNTY_VAULT_ADDRESS || process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS;
 const startBlock = process.env.RUG_BOUNTY_START_BLOCK;
 const pollMs = Number(process.env.RUG_HUNTER_POLL_MS || 15000);
+const feedPath = (process.env.RUG_HUNTER_FEED_PATH || path.join(process.cwd(), "agent", "feed.json")).trim();
 const fallbackRpcs = [
   primaryRpc,
   "https://1rpc.io/bnb",
@@ -90,6 +93,25 @@ function createClientTransport() {
   );
 }
 
+async function recordFeedEntry(entry) {
+  const payload = {
+    id: entry.id,
+    label: entry.label,
+    txHash: entry.txHash,
+    createdAtIso: entry.createdAtIso || new Date().toISOString(),
+  };
+
+  try {
+    await mkdir(path.dirname(feedPath), { recursive: true });
+    const existingRaw = await readFile(feedPath, "utf8").catch(() => "[]");
+    const existing = JSON.parse(existingRaw);
+    const next = [payload, ...existing.filter((item) => item.id !== payload.id)].slice(0, 50);
+    await writeFile(feedPath, JSON.stringify(next, null, 2));
+  } catch (error) {
+    console.error("[rug-hunter] feed-write failed", error);
+  }
+}
+
 async function main() {
   if (!privateKey) {
     throw new Error("Missing PRIVATE_KEY. Fund the generated agent wallet and set it before starting the Rug Hunter.");
@@ -133,7 +155,15 @@ async function main() {
     });
 
     for (const log of logs) {
-      activeBondIds.add(log.args.bondId.toString());
+      const bondId = log.args.bondId.toString();
+      if (!activeBondIds.has(bondId)) {
+        await recordFeedEntry({
+          id: `watching-${bondId}`,
+          label: `watching bond #${bondId} on BNB mainnet`,
+          txHash: log.transactionHash,
+        });
+      }
+      activeBondIds.add(bondId);
     }
   }
 
@@ -170,6 +200,10 @@ async function main() {
     }
 
     console.log(`[rug-hunter] floor breach on bond ${bondId}; submitting resolveBond`);
+    await recordFeedEntry({
+      id: `breach-${bondId}`,
+      label: `floor breach detected for bond #${bondId}`,
+    });
     const hash = await walletClient.writeContract({
       address: normalizedVaultAddress,
       abi: rugBountyVaultAbi,
@@ -180,6 +214,11 @@ async function main() {
     console.log(`[rug-hunter] slash tx ${hash}`);
     await client.waitForTransactionReceipt({ hash });
     console.log(`[rug-hunter] slash confirmed for bond ${bondId}`);
+    await recordFeedEntry({
+      id: `slashed-${bondId}`,
+      label: `bond #${bondId} slashed to Rug Hunter Agent`,
+      txHash: hash,
+    });
     activeBondIds.delete(bondId);
   }
 

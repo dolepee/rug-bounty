@@ -43,28 +43,75 @@ const cleanEnv = (value?: string | null) => value?.trim() || undefined;
 const vaultAddress = cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) as Address | undefined;
 
 const initialText = `I will hold at least 1.05M BIBI tokens for 3 hours.\nBinance listing soon.\nDaily updates.`;
+const initialManualLaunch = {
+  token: "",
+  creator: "",
+  name: "",
+  symbol: "",
+  launchTime: "",
+  tokenDecimals: "18",
+};
 
 export default function CreateBondPage() {
   const [oathText, setOathText] = useState(initialText);
   const [launchTxHash, setLaunchTxHash] = useState("");
   const [declaredWalletsInput, setDeclaredWalletsInput] = useState("");
-  const [bondAmountBnb, setBondAmountBnb] = useState("0.02");
+  const [bondAmountBnb, setBondAmountBnb] = useState("0.002");
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [compiled, setCompiled] = useState<CompileResponse | null>(null);
   const [parserResult, setParserResult] = useState<ParsedLaunchEvidence | null>(null);
   const [parserError, setParserError] = useState<string | null>(null);
+  const [manualLaunchInput, setManualLaunchInput] = useState(initialManualLaunch);
+  const [useManualLaunch, setUseManualLaunch] = useState(false);
   const [walletAddress, setWalletAddress] = useState<Address | null>(null);
   const [txHash, setTxHash] = useState<Hex | null>(null);
   const [createdBondId, setCreatedBondId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const manualLaunchEvidence = useMemo(() => {
+    if (!launchTxHash.trim()) {
+      return null;
+    }
+    if (!isAddress(manualLaunchInput.token) || !isAddress(manualLaunchInput.creator)) {
+      return null;
+    }
+    const launchTime = Number(manualLaunchInput.launchTime);
+    const tokenDecimals = Number(manualLaunchInput.tokenDecimals);
+    if (!Number.isFinite(launchTime) || launchTime <= 0 || !Number.isInteger(tokenDecimals) || tokenDecimals < 0 || tokenDecimals > 36) {
+      return null;
+    }
+
+    return {
+      token: getAddress(manualLaunchInput.token),
+      creator: getAddress(manualLaunchInput.creator),
+      requestId: "manual-launch-evidence",
+      name: manualLaunchInput.name || "Manual Four.Meme launch",
+      symbol: manualLaunchInput.symbol || "MANUAL",
+      totalSupply: "0",
+      launchTime: String(Math.floor(launchTime)),
+      launchFee: "0",
+      tokenDecimals,
+      blockNumber: "0",
+      txHash: launchTxHash.trim() as Hex,
+      tokenManager: "0x0000000000000000000000000000000000000000" as Address,
+      rawLogIndex: -1,
+    } satisfies ParsedLaunchEvidence;
+  }, [launchTxHash, manualLaunchInput]);
+
+  const launchEvidence = useMemo(() => {
+    if (useManualLaunch) {
+      return manualLaunchEvidence;
+    }
+    return parserResult;
+  }, [manualLaunchEvidence, parserResult, useManualLaunch]);
 
   async function runClassifier() {
     setLoading(true);
     const response = await fetch("/api/oath/compile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: oathText, tokenDecimals: parserResult?.tokenDecimals ?? 18 }),
+      body: JSON.stringify({ text: oathText, tokenDecimals: launchEvidence?.tokenDecimals ?? 18 }),
     });
     const data = await response.json();
     setCompiled(data);
@@ -87,6 +134,7 @@ export default function CreateBondPage() {
       return;
     }
     setParserResult(data.parsed as ParsedLaunchEvidence);
+    setUseManualLaunch(false);
     setDeclaredWalletsInput((current) => current || (data.parsed.creator as string));
   }
 
@@ -114,8 +162,8 @@ export default function CreateBondPage() {
       setSubmitError("Missing NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS. Deploy the vault and add it to the frontend env first.");
       return;
     }
-    if (!parserResult) {
-      setSubmitError("Parse a real Four.Meme launch transaction first.");
+    if (!launchEvidence) {
+      setSubmitError("Parse a real Four.Meme launch transaction first, or switch to manual launch fields.");
       return;
     }
     if (!compiled?.rule) {
@@ -152,7 +200,7 @@ export default function CreateBondPage() {
       const { walletClient, address } = await connectInjectedWallet();
       setWalletAddress(address);
 
-      if (address !== getAddress(parserResult.creator)) {
+      if (address !== getAddress(launchEvidence.creator)) {
         throw new Error("Connected wallet must match the creator wallet from the parsed Four.Meme launch.");
       }
       if (!parsedWallets.includes(address)) {
@@ -171,15 +219,15 @@ export default function CreateBondPage() {
         ),
       );
 
-      const launchTimestamp = BigInt(parserResult.launchTime);
+      const launchTimestamp = BigInt(launchEvidence.launchTime);
       const expiresAt = launchTimestamp + BigInt(compiled.rule.expiresInSeconds);
       const hash = await walletClient.writeContract({
         address: vaultAddress,
         abi: rugBountyVaultAbi,
         functionName: "createBond",
         args: [
-          getAddress(parserResult.token),
-          parserResult.txHash,
+          getAddress(launchEvidence.token),
+          launchEvidence.txHash,
           launchTimestamp,
           parsedWallets,
           BigInt(compiled.rule.declaredRetainedBalance),
@@ -248,18 +296,79 @@ export default function CreateBondPage() {
               {parserError ? <div className="mt-2 text-sm text-red-300">{parserError}</div> : null}
             </div>
 
-            {parserResult ? (
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Launch evidence mode</div>
+                <label className="inline-flex items-center gap-2 text-sm text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={useManualLaunch}
+                    onChange={(event) => {
+                      setUseManualLaunch(event.target.checked);
+                      if (event.target.checked && !declaredWalletsInput && manualLaunchInput.creator) {
+                        setDeclaredWalletsInput(manualLaunchInput.creator);
+                      }
+                    }}
+                  />
+                  Use manual launch fields
+                </label>
+              </div>
+              <p className="mt-3 text-sm leading-7 text-zinc-400">
+                If RPC parsing fails, you can manually supply the token address, creator wallet, and launch timestamp while still keeping the original Four.Meme launch tx hash.
+              </p>
+
+              {useManualLaunch ? (
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <input
+                    value={manualLaunchInput.token}
+                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, token: event.target.value }))}
+                    placeholder="Token address"
+                    className="font-mono"
+                  />
+                  <input
+                    value={manualLaunchInput.creator}
+                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, creator: event.target.value }))}
+                    placeholder="Creator wallet"
+                    className="font-mono"
+                  />
+                  <input
+                    value={manualLaunchInput.name}
+                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, name: event.target.value }))}
+                    placeholder="Token name"
+                  />
+                  <input
+                    value={manualLaunchInput.symbol}
+                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, symbol: event.target.value }))}
+                    placeholder="Ticker symbol"
+                  />
+                  <input
+                    value={manualLaunchInput.launchTime}
+                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, launchTime: event.target.value }))}
+                    placeholder="Launch timestamp (unix seconds)"
+                    className="font-mono"
+                  />
+                  <input
+                    value={manualLaunchInput.tokenDecimals}
+                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, tokenDecimals: event.target.value }))}
+                    placeholder="Token decimals"
+                    className="font-mono"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {launchEvidence ? (
               <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
                 <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Parsed launch evidence</div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <EvidenceRow label="Token" value={parserResult.token} mono />
-                  <EvidenceRow label="Creator" value={parserResult.creator} mono />
-                  <EvidenceRow label="Name" value={parserResult.name} />
-                  <EvidenceRow label="Symbol" value={parserResult.symbol} />
-                  <EvidenceRow label="Launch time" value={new Date(Number(parserResult.launchTime) * 1000).toLocaleString()} />
-                  <EvidenceRow label="Decimals" value={String(parserResult.tokenDecimals)} />
-                  <EvidenceRow label="Launch fee" value={`${formatEther(BigInt(parserResult.launchFee))} BNB`} />
-                  <EvidenceRow label="Tx hash" value={parserResult.txHash} mono />
+                  <EvidenceRow label="Token" value={launchEvidence.token} mono />
+                  <EvidenceRow label="Creator" value={launchEvidence.creator} mono />
+                  <EvidenceRow label="Name" value={launchEvidence.name} />
+                  <EvidenceRow label="Symbol" value={launchEvidence.symbol} />
+                  <EvidenceRow label="Launch time" value={new Date(Number(launchEvidence.launchTime) * 1000).toLocaleString()} />
+                  <EvidenceRow label="Decimals" value={String(launchEvidence.tokenDecimals)} />
+                  <EvidenceRow label="Launch fee" value={`${formatEther(BigInt(launchEvidence.launchFee))} BNB`} />
+                  <EvidenceRow label="Tx hash" value={launchEvidence.txHash} mono />
                 </div>
               </div>
             ) : null}

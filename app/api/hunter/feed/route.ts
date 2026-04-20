@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getHunterFeed } from "@/lib/data/store";
+import { readHunterFeed } from "@/lib/data/hunter-feed";
 
 export async function GET() {
-  return NextResponse.json({ entries: getHunterFeed() });
+  return NextResponse.json({ entries: await readHunterFeed() });
 }

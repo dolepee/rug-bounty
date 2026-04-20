@@ -9,6 +9,7 @@ import { bscScanTxUrl } from "@/lib/fourmeme/links";
 
 const cleanEnv = (value?: string | null) => value?.trim() || undefined;
 const vaultAddress = cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) as Address | undefined;
+const postExpirySlashWindowMs = 10 * 60 * 1000;
 
 type BondActionPanelProps = {
   bondId: string;
@@ -28,9 +29,11 @@ export function BondActionPanel({ bondId, creator, status, expiresAtIso }: BondA
   const [now, setNow] = useState(() => Date.now());
 
   const isTerminal = status === "SLASHED" || status === "REFUNDED";
-  const isExpired = now >= new Date(expiresAtIso).getTime();
-  const canTrySlash = !isTerminal;
-  const canTryRefund = !isTerminal;
+  const expiresAtMs = new Date(expiresAtIso).getTime();
+  const isExpired = now >= expiresAtMs;
+  const refundUnlocked = now >= expiresAtMs + postExpirySlashWindowMs;
+  const canTrySlash = !isTerminal && now < expiresAtMs + postExpirySlashWindowMs;
+  const canTryRefund = !isTerminal && refundUnlocked;
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -88,12 +91,13 @@ export function BondActionPanel({ bondId, creator, status, expiresAtIso }: BondA
     <div className="surface rounded-3xl p-6">
       <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Manual action surface</div>
       <div className="mt-4 space-y-3 text-sm text-zinc-400">
-        <p>Anyone can attempt <code>resolveBond</code>. If the floor is intact, the tx reverts. If the current balance is below the declared floor, the caller takes the bond.</p>
-        <p>Only the creator can call <code>refundAfterExpiry</code>, and only after expiry while the bond is still active.</p>
+        <p>Any non-declared wallet can attempt <code>resolveBond</code>. If the floor is intact, the tx reverts. If the current balance is below the declared floor, the caller takes the bond.</p>
+        <p>Only the creator can call <code>refundAfterExpiry</code>, and only after expiry plus the 10 minute post-expiry hunter window while the bond is still above floor.</p>
         <p>
           Current state:
           <span className="ml-2 font-mono text-zinc-300">{status}</span>
           <span className="ml-4 font-mono text-zinc-300">{isExpired ? "expired" : "pre-expiry"}</span>
+          <span className="ml-4 font-mono text-zinc-300">{refundUnlocked ? "refund unlocked" : "hunter window active"}</span>
         </p>
       </div>
 

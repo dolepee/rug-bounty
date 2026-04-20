@@ -53,7 +53,7 @@ export default async function HomePage() {
                   {showcase.ticker} was launched, bonded, breached, and slashed on BNB mainnet.
                 </h2>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">
-                  This is the real showcase loop, not seed data. The creator launched BIBI on Four.Meme, bonded a 1.05M floor, sold below it, and the autonomous Rug Hunter captured the bond.
+                  This is the real showcase loop on the patched vault, not seed data. The creator launched PATCH on Four.Meme, bonded a 1.02M floor, sold below it, and the autonomous Rug Hunter captured the bond.
                 </p>
               </div>
               <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -157,7 +157,7 @@ export default async function HomePage() {
             <div className="rounded-2xl border border-white/8 bg-white/2 p-4">
               <div className="text-sm font-semibold text-zinc-100">Vault-enforced</div>
               <p className="mt-2 text-sm leading-7 text-zinc-400">
-                The vault stores declared creator wallets, a retained-balance floor, expiry, and the BNB bond. `resolveBond` reads live balances and slashes only if the floor is breached before expiry.
+                The vault stores declared creator wallets, a retained-balance floor, expiry, and the BNB bond. `resolveBond` reads live balances and slashes only if the floor is breached before expiry or during the short post-expiry hunter window.
               </p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-white/2 p-4">

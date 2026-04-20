@@ -10,3 +10,4 @@ coverage
 dist
 *.tsbuildinfo
 .generated-wallets.json
+agent/feed.json

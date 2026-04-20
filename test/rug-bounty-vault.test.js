@@ -80,6 +80,32 @@ test("resolveBond slashes when creator balance drops below the floor", async () 
   }
 });
 
+test("resolveBond reverts when a declared creator wallet tries to self-hunt", async () => {
+  const fixture = await createFixture();
+  try {
+    const bondId = await createBond(fixture);
+    await fixture.creator.walletClient.writeContract({
+      address: fixture.tokenAddress,
+      abi: fixture.tokenArtifact.abi,
+      functionName: "transfer",
+      args: [fixture.hunter.account.address, BREACH_TRANSFER_AMOUNT],
+      account: fixture.creator.account,
+    });
+
+    await assert.rejects(
+      fixture.creator.walletClient.writeContract({
+        address: fixture.vaultAddress,
+        abi: fixture.vaultArtifact.abi,
+        functionName: "resolveBond",
+        args: [bondId],
+        account: fixture.creator.account,
+      }),
+    );
+  } finally {
+    await fixture.close();
+  }
+});
+
 test("resolveBond reverts while the creator balance is still above the floor", async () => {
   const fixture = await createFixture();
   try {
@@ -102,7 +128,7 @@ test("refundAfterExpiry returns the bond to the creator after expiry", async () 
   const fixture = await createFixture();
   try {
     const bondId = await createBond(fixture, { expiresInSeconds: 120 });
-    await fixture.provider.request({ method: "evm_increaseTime", params: [180] });
+    await fixture.provider.request({ method: "evm_increaseTime", params: [12 * 60] });
     await fixture.provider.request({ method: "evm_mine", params: [] });
 
     const hash = await fixture.creator.walletClient.writeContract({
@@ -122,6 +148,42 @@ test("refundAfterExpiry returns the bond to the creator after expiry", async () 
     });
     assert.equal(bond.status, 2);
     assert.equal(bond.bondAmount, 0n);
+  } finally {
+    await fixture.close();
+  }
+});
+
+test("resolveBond still works during the post-expiry grace window", async () => {
+  const fixture = await createFixture();
+  try {
+    const bondId = await createBond(fixture, { expiresInSeconds: 120 });
+    await fixture.creator.walletClient.writeContract({
+      address: fixture.tokenAddress,
+      abi: fixture.tokenArtifact.abi,
+      functionName: "transfer",
+      args: [fixture.outsider.account.address, BREACH_TRANSFER_AMOUNT],
+      account: fixture.creator.account,
+    });
+    await fixture.provider.request({ method: "evm_increaseTime", params: [180] });
+    await fixture.provider.request({ method: "evm_mine", params: [] });
+
+    const hash = await fixture.hunter.walletClient.writeContract({
+      address: fixture.vaultAddress,
+      abi: fixture.vaultArtifact.abi,
+      functionName: "resolveBond",
+      args: [bondId],
+      account: fixture.hunter.account,
+    });
+    await fixture.publicClient.waitForTransactionReceipt({ hash });
+
+    const bond = await fixture.publicClient.readContract({
+      address: fixture.vaultAddress,
+      abi: fixture.vaultArtifact.abi,
+      functionName: "getBond",
+      args: [bondId],
+    });
+    assert.equal(bond.status, 1);
+    assert.equal(bond.slashedTo.toLowerCase(), fixture.hunter.account.address.toLowerCase());
   } finally {
     await fixture.close();
   }
@@ -147,6 +209,34 @@ test("refundAfterExpiry reverts once a bond has already been slashed", async () 
     });
     await fixture.publicClient.waitForTransactionReceipt({ hash: slashHash });
     await fixture.provider.request({ method: "evm_increaseTime", params: [180] });
+    await fixture.provider.request({ method: "evm_mine", params: [] });
+
+    await assert.rejects(
+      fixture.creator.walletClient.writeContract({
+        address: fixture.vaultAddress,
+        abi: fixture.vaultArtifact.abi,
+        functionName: "refundAfterExpiry",
+        args: [bondId],
+        account: fixture.creator.account,
+      }),
+    );
+  } finally {
+    await fixture.close();
+  }
+});
+
+test("refundAfterExpiry reverts when the creator is still below floor after the grace window", async () => {
+  const fixture = await createFixture();
+  try {
+    const bondId = await createBond(fixture, { expiresInSeconds: 120 });
+    await fixture.creator.walletClient.writeContract({
+      address: fixture.tokenAddress,
+      abi: fixture.tokenArtifact.abi,
+      functionName: "transfer",
+      args: [fixture.outsider.account.address, BREACH_TRANSFER_AMOUNT],
+      account: fixture.creator.account,
+    });
+    await fixture.provider.request({ method: "evm_increaseTime", params: [13 * 60] });
     await fixture.provider.request({ method: "evm_mine", params: [] });
 
     await assert.rejects(

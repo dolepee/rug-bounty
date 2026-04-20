@@ -13,6 +13,8 @@ type PromiseItem = {
 };
 
 type CompileResponse = {
+  provider: "dgrid" | "deterministic";
+  model: string | null;
   classified: PromiseItem[];
   enforceableCount: number;
   humanSummary: string;
@@ -60,6 +62,7 @@ export default function CreateBondPage() {
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [compiled, setCompiled] = useState<CompileResponse | null>(null);
+  const [classifierError, setClassifierError] = useState<string | null>(null);
   const [parserResult, setParserResult] = useState<ParsedLaunchEvidence | null>(null);
   const [parserError, setParserError] = useState<string | null>(null);
   const [manualLaunchInput, setManualLaunchInput] = useState(initialManualLaunch);
@@ -108,14 +111,24 @@ export default function CreateBondPage() {
 
   async function runClassifier() {
     setLoading(true);
-    const response = await fetch("/api/oath/compile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: oathText, tokenDecimals: launchEvidence?.tokenDecimals ?? 18 }),
-    });
-    const data = await response.json();
-    setCompiled(data);
-    setLoading(false);
+    setClassifierError(null);
+    try {
+      const response = await fetch("/api/oath/compile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: oathText, tokenDecimals: launchEvidence?.tokenDecimals ?? 18 }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Classifier request failed.");
+      }
+      setCompiled(data);
+    } catch (error) {
+      setCompiled(null);
+      setClassifierError(error instanceof Error ? error.message : "Classifier request failed.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function parseLaunchTx() {
@@ -400,6 +413,10 @@ export default function CreateBondPage() {
               </div>
             </div>
 
+            {classifierError ? (
+              <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{classifierError}</div>
+            ) : null}
+
             <div className="grid gap-3 md:grid-cols-[1fr_auto]">
               <div>
                 <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Bond amount</label>
@@ -436,6 +453,15 @@ export default function CreateBondPage() {
           <ClassifierCard title="Rejected" tone="red" items={grouped.rejected} />
           <div className="surface rounded-3xl p-6">
             <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Compiled rule</div>
+            {compiled ? (
+              <div className="mt-4 flex justify-between text-sm text-zinc-300">
+                <span className="text-zinc-500">Classification provider</span>
+                <span className={compiled.provider === "dgrid" ? "text-emerald-300" : "text-amber-200"}>
+                  {compiled.provider === "dgrid" ? "DGrid" : "Deterministic fallback"}
+                  {compiled.model ? ` · ${compiled.model}` : ""}
+                </span>
+              </div>
+            ) : null}
             {compiled?.rule ? (
               <div className="mt-4 space-y-3 text-sm text-zinc-300">
                 <div className="flex justify-between">

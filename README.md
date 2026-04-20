@@ -32,23 +32,26 @@ Not claimed:
 
 ## Live proof
 
-The current showcase proof is a real BNB mainnet loop around `Bonded Bibi / BIBI`:
+The current showcase proof is a real BNB mainnet loop around `PatchProof / PATCH` on the **patched vault**:
 
 - Four.Meme launch tx:
-  `0x5807db9c9364698bbc733511711993dfb157fa5b7e8bfaa171aceb315f72b77a`
+  `0xdeafcf1faf1afd130f75941aa48ea8d7d9a6bc074cf17cfd7293030aa5d7eea4`
 - BondCreated tx:
-  `0xad162b3bd5458ee8fb7f80f1b116fbb5b7d968e4bd5ebaaeda10711bb8168b7b`
+  `0xc642798f5dbf33f6d59b97229fe4f505fa555498121f8329b751a37323ec3f64`
 - BondSlashed tx:
-  `0x330410878d8a8df262885f4c8ee5b4c2caf3dbc30a42e2ee39c1eec48f2e5691`
+  `0x7ce760c03a4d7a0c4c9ce015402572f13410f8b1b747b57f53142a78910a6534`
 
 What happened:
-- the creator launched `BIBI` on Four.Meme
-- the creator bonded a `1.05M BIBI` retained-balance floor
+- the creator launched `PATCH` on Four.Meme
+- the creator bonded a `1.02M PATCH` retained-balance floor with `0.006 BNB`
 - the creator sold below the floor
 - the Rug Hunter Agent submitted the slash onchain
 
 Configured vault:
-- `0x2FC538F2Ad4d3595d178Aa67a7B23A7003ec5230`
+- `0xd8654b6b4f0fc382f36341ac7fd6c70466950fd5`
+
+Archived earlier proof:
+- `BIBI` remains a historical first-pass mainnet proof on the old vault, but the current public showcase and submission narrative are anchored to the patched `PATCH` loop above.
 
 ## Current state
 
@@ -69,7 +72,8 @@ Implemented:
 - real mainnet proof loop for launch -> bond -> breach -> slash
 
 Currently proven on mainnet:
-- one real slashed bond (`BIBI`)
+- one real slashed bond on the patched vault (`PATCH`)
+- one earlier slashed bond on the previous vault (`BIBI`)
 
 Currently proven locally and exposed in-product:
 - clean refund path via `refundAfterExpiry`

@@ -8,6 +8,7 @@ interface IERC20Minimal {
 
 contract RugBountyVault {
     uint256 public constant LAUNCH_WINDOW = 1 hours;
+    uint256 public constant POST_EXPIRY_SLASH_WINDOW = 10 minutes;
     uint256 public constant MIN_FLOOR_BPS = 10; // 0.1%
     uint256 public constant MAX_DECLARED_WALLETS = 8;
 
@@ -76,8 +77,10 @@ contract RugBountyVault {
     error InvalidExpiry();
     error InvalidDeclaredWallets();
     error CreatorWalletMissing();
-    error FloorNotMet();
+    error CreatorBalanceBelowFloor();
+    error CreatorBalanceStillAtOrAboveFloor();
     error FloorTooLow();
+    error HunterCannotBeDeclaredWallet();
     error TransferFailed();
 
     function createBond(
@@ -114,7 +117,7 @@ contract RugBountyVault {
         if (declaredRetainedBalance * 10000 < totalSupply * MIN_FLOOR_BPS) revert FloorTooLow();
 
         uint256 current = _currentCreatorBalanceCalldata(token, declaredCreatorWallets);
-        if (current < declaredRetainedBalance) revert FloorNotMet();
+        if (current < declaredRetainedBalance) revert CreatorBalanceBelowFloor();
 
         bondId = nextBondId++;
         Bond storage bond = bonds[bondId];
@@ -154,10 +157,11 @@ contract RugBountyVault {
     function resolveBond(uint256 bondId) external {
         Bond storage bond = bonds[bondId];
         if (bond.status != BondStatus.ACTIVE) revert BondNotActive();
-        if (block.timestamp >= bond.expiresAt) revert BondExpired();
+        if (block.timestamp >= bond.expiresAt + POST_EXPIRY_SLASH_WINDOW) revert BondExpired();
+        if (_isDeclaredWalletStorage(bond.declaredCreatorWallets, msg.sender)) revert HunterCannotBeDeclaredWallet();
 
         uint256 current = _currentCreatorBalance(bond.token, bond.declaredCreatorWallets);
-        if (current >= bond.declaredRetainedBalance) revert FloorNotMet();
+        if (current >= bond.declaredRetainedBalance) revert CreatorBalanceStillAtOrAboveFloor();
 
         bond.status = BondStatus.SLASHED;
         bond.slashedTo = msg.sender;
@@ -174,7 +178,10 @@ contract RugBountyVault {
         Bond storage bond = bonds[bondId];
         if (bond.status != BondStatus.ACTIVE) revert BondNotActive();
         if (msg.sender != bond.creator) revert NotCreator();
-        if (block.timestamp < bond.expiresAt) revert BondNotExpired();
+        if (block.timestamp < bond.expiresAt + POST_EXPIRY_SLASH_WINDOW) revert BondNotExpired();
+
+        uint256 current = _currentCreatorBalance(bond.token, bond.declaredCreatorWallets);
+        if (current < bond.declaredRetainedBalance) revert CreatorBalanceBelowFloor();
 
         bond.status = BondStatus.REFUNDED;
         uint256 payout = bond.bondAmount;
@@ -205,5 +212,14 @@ contract RugBountyVault {
         for (uint256 i = 0; i < declaredWallets.length; i++) {
             sum += IERC20Minimal(token).balanceOf(declaredWallets[i]);
         }
+    }
+
+    function _isDeclaredWalletStorage(address[] storage declaredWallets, address account) internal view returns (bool) {
+        for (uint256 i = 0; i < declaredWallets.length; i++) {
+            if (declaredWallets[i] == account) {
+                return true;
+            }
+        }
+        return false;
     }
 }

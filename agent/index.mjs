@@ -10,6 +10,7 @@ const vaultAddress = process.env.RUG_BOUNTY_VAULT_ADDRESS || process.env.NEXT_PU
 const startBlock = process.env.RUG_BOUNTY_START_BLOCK;
 const pollMs = Number(process.env.RUG_HUNTER_POLL_MS || 15000);
 const feedPath = (process.env.RUG_HUNTER_FEED_PATH || path.join(process.cwd(), "agent", "feed.json")).trim();
+const postExpirySlashWindowSeconds = Number(process.env.RUG_HUNTER_POST_EXPIRY_SLASH_WINDOW_SECONDS || 600);
 const fallbackRpcs = [
   primaryRpc,
   "https://1rpc.io/bnb",
@@ -189,8 +190,8 @@ async function main() {
     }
 
     const now = BigInt(Math.floor(Date.now() / 1000));
-    if (now >= bond.expiresAt) {
-      console.log(`[rug-hunter] bond ${bondId} expired; waiting for creator refund path`);
+    if (now >= bond.expiresAt + BigInt(postExpirySlashWindowSeconds)) {
+      console.log(`[rug-hunter] bond ${bondId} passed the post-expiry hunter window`);
       return;
     }
 

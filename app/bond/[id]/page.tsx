@@ -15,6 +15,7 @@ export default async function BondDetailPage({
   const { bondTxHash } = await searchParams;
   const bond = await getBondForPage(id);
   if (!bond) notFound();
+  const resolvedBondTxHash = bondTxHash || ("bondTxHash" in bond ? bond.bondTxHash : undefined);
   const bondAmountLabel = Number(bond.bondAmountBnb).toFixed(4);
 
   return (
@@ -95,8 +96,8 @@ export default async function BondDetailPage({
           </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            {bondTxHash ? (
-              <a className="button-primary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(bondTxHash)} target="_blank" rel="noreferrer">
+            {resolvedBondTxHash ? (
+              <a className="button-primary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(resolvedBondTxHash)} target="_blank" rel="noreferrer">
                 BondCreated tx
               </a>
             ) : null}
@@ -106,6 +107,11 @@ export default async function BondDetailPage({
             {"slashTxHash" in bond && bond.slashTxHash ? (
               <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(bond.slashTxHash)} target="_blank" rel="noreferrer">
                 BondSlashed tx
+              </a>
+            ) : null}
+            {"refundTxHash" in bond && bond.refundTxHash ? (
+              <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(bond.refundTxHash)} target="_blank" rel="noreferrer">
+                BondRefunded tx
               </a>
             ) : null}
             <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={fourMemeTokenUrl(bond.tokenAddress)} target="_blank" rel="noreferrer">

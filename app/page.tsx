@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, ShieldAlert, Sparkles, SearchCheck, Bot, ScrollText } from "lucide-react";
-import { getDirectoryBonds, getPrimaryShowcaseBond, showcaseProof } from "@/lib/data/showcase";
+import { getCurrentMainnetProofs, getDirectoryBonds, showcaseProof, refundProof } from "@/lib/data/showcase";
 import { getHunterRuntimeStatus } from "@/lib/data/hunter-status";
 import { bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 
@@ -11,8 +11,10 @@ const proofModel = [
 ];
 
 export default async function HomePage() {
+  const currentProofs = await getCurrentMainnetProofs();
   const bonds = await getDirectoryBonds();
-  const showcase = await getPrimaryShowcaseBond();
+  const showcase = currentProofs.find((bond) => bond.id === showcaseProof.bondId) ?? null;
+  const refundBond = currentProofs.find((bond) => bond.id === refundProof.bondId) ?? null;
   const hunterStatus = await getHunterRuntimeStatus();
 
   return (
@@ -45,39 +47,98 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {showcase ? (
+      {showcase || refundBond ? (
         <section className="section-shell -mt-2 mb-10">
-          <div className="surface rounded-3xl p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live mainnet proof</div>
-                <h2 className="mt-2 text-2xl font-semibold text-zinc-50">
-                  {showcase.ticker} was launched, bonded, breached, and slashed on BNB mainnet.
-                </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">
-                  This is the real showcase loop on the patched vault, not seed data. The creator launched PATCH on Four.Meme, bonded a 1.02M floor, sold below it, and the autonomous Rug Hunter captured the bond.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                Live status: {showcase.status}
+          <div className="space-y-4">
+            <div className="surface rounded-3xl p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live mainnet outcomes</div>
+                  <h2 className="mt-2 text-2xl font-semibold text-zinc-50">
+                    Slash and clean refund are both proven on the patched vault.
+                  </h2>
+                  <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">
+                    The public proof set now has both outcomes on BNB mainnet: PATCH shows the autonomous hunter slash path, and SEAL shows the creator refund path after expiry plus the hunter grace window.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                  Proven outcomes: {currentProofs.length}
+                </div>
               </div>
             </div>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <a className="button-primary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.launchTxHash)} target="_blank" rel="noreferrer">
-                Launch tx
-              </a>
-              <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.bondTxHash)} target="_blank" rel="noreferrer">
-                BondCreated tx
-              </a>
-              <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.slashTxHash)} target="_blank" rel="noreferrer">
-                BondSlashed tx
-              </a>
-              <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={fourMemeTokenUrl(showcase.tokenAddress)} target="_blank" rel="noreferrer">
-                Four.Meme token page
-              </a>
-              <Link href={`/bond/${showcase.id}?bondTxHash=${showcaseProof.bondTxHash}`} className="button-secondary rounded-xl px-4 py-3 text-sm">
-                Open live bond page
-              </Link>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              {showcase ? (
+                <div className="surface rounded-3xl p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Slash proof</div>
+                      <h3 className="mt-2 text-2xl font-semibold text-zinc-50">
+                        {showcase.ticker} was launched, bonded, breached, and slashed.
+                      </h3>
+                      <p className="mt-3 text-sm leading-7 text-zinc-400">
+                        The creator launched PATCH on Four.Meme, bonded a 1.02M floor, sold below it, and the autonomous Rug Hunter Agent captured the bond on the patched vault.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                      Live status: {showcase.status}
+                    </div>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <a className="button-primary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.launchTxHash)} target="_blank" rel="noreferrer">
+                      Launch tx
+                    </a>
+                    <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.bondTxHash)} target="_blank" rel="noreferrer">
+                      BondCreated tx
+                    </a>
+                    <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.slashTxHash)} target="_blank" rel="noreferrer">
+                      BondSlashed tx
+                    </a>
+                    <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={fourMemeTokenUrl(showcase.tokenAddress)} target="_blank" rel="noreferrer">
+                      Four.Meme token page
+                    </a>
+                    <Link href={`/bond/${showcase.id}?bondTxHash=${showcaseProof.bondTxHash}`} className="button-secondary rounded-xl px-4 py-3 text-sm">
+                      Open live bond page
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+
+              {refundBond ? (
+                <div className="surface rounded-3xl p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Refund proof</div>
+                      <h3 className="mt-2 text-2xl font-semibold text-zinc-50">
+                        {refundBond.ticker} was launched, bonded, held, and refunded.
+                      </h3>
+                      <p className="mt-3 text-sm leading-7 text-zinc-400">
+                        The creator launched SEAL on Four.Meme, bonded a 1.02M floor, kept the balance intact through expiry and the 10 minute hunter window, then reclaimed the bond on the patched vault.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                      Live status: {refundBond.status}
+                    </div>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <a className="button-primary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(refundProof.launchTxHash)} target="_blank" rel="noreferrer">
+                      Launch tx
+                    </a>
+                    <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(refundProof.bondTxHash)} target="_blank" rel="noreferrer">
+                      BondCreated tx
+                    </a>
+                    <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(refundProof.refundTxHash)} target="_blank" rel="noreferrer">
+                      BondRefunded tx
+                    </a>
+                    <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={fourMemeTokenUrl(refundBond.tokenAddress)} target="_blank" rel="noreferrer">
+                      Four.Meme token page
+                    </a>
+                    <Link href={`/bond/${refundBond.id}?bondTxHash=${refundProof.bondTxHash}`} className="button-secondary rounded-xl px-4 py-3 text-sm">
+                      Open refund bond page
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
@@ -98,19 +159,19 @@ export default async function HomePage() {
         <div className="grid gap-4 lg:grid-cols-4">
           <div className="surface-strong rounded-2xl p-5">
             <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live launch proofs</div>
-            <div className="mt-3 text-3xl font-semibold">{showcase ? 1 : 0}</div>
+            <div className="mt-3 text-3xl font-semibold">{currentProofs.length}</div>
           </div>
           <div className="surface-strong rounded-2xl p-5">
             <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live slashes</div>
-            <div className="mt-3 text-3xl font-semibold text-red-300">{showcase?.status === "SLASHED" ? 1 : 0}</div>
+            <div className="mt-3 text-3xl font-semibold text-red-300">{currentProofs.filter((bond) => bond.status === "SLASHED").length}</div>
+          </div>
+          <div className="surface-strong rounded-2xl p-5">
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live refunds</div>
+            <div className="mt-3 text-3xl font-semibold text-emerald-300">{currentProofs.filter((bond) => bond.status === "REFUNDED").length}</div>
           </div>
           <div className="surface-strong rounded-2xl p-5">
             <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Main rule</div>
             <div className="mt-3 text-lg font-semibold">CREATOR_WALLET_FLOOR</div>
-          </div>
-          <div className="surface-strong rounded-2xl p-5">
-            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Agent mode</div>
-            <div className="mt-3 text-lg font-semibold">Trigger only, not oracle</div>
           </div>
         </div>
       </section>
@@ -248,7 +309,7 @@ export default async function HomePage() {
           {bonds.map((bond) => (
             <Link
               key={bond.id}
-              href={`/bond/${bond.id}${bond.id === showcaseProof.bondId ? `?bondTxHash=${showcaseProof.bondTxHash}` : ""}`}
+              href={`/bond/${bond.id}${bond.bondTxHash ? `?bondTxHash=${bond.bondTxHash}` : ""}`}
               className="table-row grid grid-cols-[1.3fr_0.8fr_0.8fr_0.7fr_0.8fr] gap-4 px-5 py-4 text-sm"
             >
               <div>

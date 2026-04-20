@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getBondForPage, showcaseProof } from "@/lib/data/showcase";
+import { getBondForPage } from "@/lib/data/showcase";
 import { bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 import { CopyButton } from "@/app/components/copy-button";
 
@@ -69,11 +69,16 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
               <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
                 <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Proof links</div>
                 <div className="mt-3 text-sm text-zinc-300">Launch tx, bond tx, slash or refund tx, and declared wallet list are all public.</div>
-                {id === showcaseProof.bondId ? (
+                {"bondTxHash" in bond && bond.bondTxHash ? (
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <a className="text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(showcaseProof.launchTxHash)} target="_blank" rel="noreferrer">Launch</a>
-                    <a className="text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(showcaseProof.bondTxHash)} target="_blank" rel="noreferrer">Bond</a>
-                    <a className="text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(showcaseProof.slashTxHash)} target="_blank" rel="noreferrer">Slash</a>
+                    <a className="text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(bond.launchTxHash)} target="_blank" rel="noreferrer">Launch</a>
+                    <a className="text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(bond.bondTxHash)} target="_blank" rel="noreferrer">Bond</a>
+                    {"slashTxHash" in bond && bond.slashTxHash ? (
+                      <a className="text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(bond.slashTxHash)} target="_blank" rel="noreferrer">Slash</a>
+                    ) : null}
+                    {"refundTxHash" in bond && bond.refundTxHash ? (
+                      <a className="text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(bond.refundTxHash)} target="_blank" rel="noreferrer">Refund</a>
+                    ) : null}
                     <a className="text-sm text-amber-300 hover:text-amber-200" href={fourMemeTokenUrl(bond.tokenAddress)} target="_blank" rel="noreferrer">Four.Meme</a>
                     <a className="text-sm text-amber-300 hover:text-amber-200" href={shareCardUrl} target="_blank" rel="noreferrer">Share card</a>
                   </div>

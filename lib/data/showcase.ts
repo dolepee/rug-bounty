@@ -12,6 +12,17 @@ export const showcaseProof = {
   slashedAtIso: "2026-04-20T12:04:55.000Z",
 };
 
+export const refundProof = {
+  bondId: "1",
+  launchTxHash: "0x963c37ef4fa066f0b9a10baa8b36854a31edf0ed7d2f9e970f3e83bbcd44d90b" as Hex,
+  bondTxHash: "0x3710bd90f9ec7fb05814e9b90e34d1b169dea6191071439fcdeb3ed4038ffd14" as Hex,
+  refundTxHash: "0x1fb09f67456b66ed00b3d3b5d68cf44ad847c0d6e1826f51aeb33e590c6339b4" as Hex,
+  originalBondAmountBnb: "0.0025",
+  launchedAtIso: "2026-04-20T17:20:15.000Z",
+  bondedAtIso: "2026-04-20T17:26:47.000Z",
+  refundedAtIso: "2026-04-20T17:46:45.000Z",
+};
+
 export const archivedProof = {
   bondId: "archived-bibi",
   launchTxHash: "0x5807db9c9364698bbc733511711993dfb157fa5b7e8bfaa171aceb315f72b77a" as Hex,
@@ -26,6 +37,7 @@ export const archivedProof = {
 export type ShowcaseBond = LiveBondRecord & {
   bondTxHash?: string;
   slashTxHash?: string;
+  refundTxHash?: string;
 };
 
 export type PublicHunterFeedEntry = {
@@ -71,6 +83,24 @@ const archivedShowcaseBond: ShowcaseBond = {
   slashTxHash: archivedProof.slashTxHash,
 };
 
+const staticRefundBond: ShowcaseBond = {
+  id: "1",
+  tokenName: "RefundSeal",
+  ticker: "$SEAL",
+  tokenAddress: "0x75415EAb4abF2B8f6daebE95Cce7B16DaAF74444" as Address,
+  creator: "0xfB09b732f1A4100A9Dc661Efbc95431B9E2E1810" as Address,
+  declaredCreatorWallets: ["0xfB09b732f1A4100A9Dc661Efbc95431B9E2E1810" as Address],
+  bondAmountBnb: refundProof.originalBondAmountBnb,
+  declaredFloor: "1020000",
+  currentBalance: "1206124.687221308",
+  status: "REFUNDED",
+  expiresAtIso: "2026-04-20T17:35:15.000Z",
+  launchTxHash: refundProof.launchTxHash,
+  notes: "Live BNB mainnet bond on the patched vault that stayed above floor, survived the hunter window, and refunded cleanly to the creator.",
+  bondTxHash: refundProof.bondTxHash,
+  refundTxHash: refundProof.refundTxHash,
+};
+
 export async function getPrimaryShowcaseBond(): Promise<ShowcaseBond | null> {
   const live = await getLiveBondById(showcaseProof.bondId);
   if (!live) {
@@ -85,9 +115,28 @@ export async function getPrimaryShowcaseBond(): Promise<ShowcaseBond | null> {
   };
 }
 
+export async function getRefundShowcaseBond(): Promise<ShowcaseBond | null> {
+  const live = await getLiveBondById(refundProof.bondId);
+  if (!live) {
+    return staticRefundBond;
+  }
+
+  return {
+    ...live,
+    bondAmountBnb: refundProof.originalBondAmountBnb,
+    bondTxHash: refundProof.bondTxHash,
+    refundTxHash: refundProof.refundTxHash,
+  };
+}
+
+export async function getCurrentMainnetProofs(): Promise<ShowcaseBond[]> {
+  const [slashProofBond, refundProofBond] = await Promise.all([getPrimaryShowcaseBond(), getRefundShowcaseBond()]);
+  return [slashProofBond, refundProofBond].filter((bond): bond is ShowcaseBond => Boolean(bond));
+}
+
 export async function getDirectoryBonds(): Promise<ShowcaseBond[]> {
-  const live = await getPrimaryShowcaseBond();
-  return live ? [live, archivedShowcaseBond] : [staticShowcaseBond, archivedShowcaseBond];
+  const currentProofs = await getCurrentMainnetProofs();
+  return [...currentProofs, archivedShowcaseBond];
 }
 
 export async function getBrokenOathBonds(): Promise<ShowcaseBond[]> {
@@ -99,6 +148,7 @@ export async function getBondForPage(id: string): Promise<ShowcaseBond | undefin
   const live = await getLiveBondById(id);
   if (!live) {
     if (id === showcaseProof.bondId) return staticShowcaseBond;
+    if (id === refundProof.bondId) return staticRefundBond;
     if (id === archivedProof.bondId) return archivedShowcaseBond;
     return undefined;
   }
@@ -109,6 +159,15 @@ export async function getBondForPage(id: string): Promise<ShowcaseBond | undefin
       bondAmountBnb: showcaseProof.originalBondAmountBnb,
       bondTxHash: showcaseProof.bondTxHash,
       slashTxHash: showcaseProof.slashTxHash,
+    };
+  }
+
+  if (id === refundProof.bondId) {
+    return {
+      ...live,
+      bondAmountBnb: refundProof.originalBondAmountBnb,
+      bondTxHash: refundProof.bondTxHash,
+      refundTxHash: refundProof.refundTxHash,
     };
   }
 

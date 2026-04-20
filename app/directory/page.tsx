@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getDirectoryBonds, showcaseProof } from "@/lib/data/showcase";
+import { getDirectoryBonds, refundProof, showcaseProof } from "@/lib/data/showcase";
 
 export default async function DirectoryPage() {
   const bonds = await getDirectoryBonds();
@@ -17,14 +17,15 @@ export default async function DirectoryPage() {
         {bonds.map((bond) => (
           <Link
             key={bond.id}
-            href={`/bond/${bond.id}${bond.id === showcaseProof.bondId ? `?bondTxHash=${showcaseProof.bondTxHash}` : ""}`}
+            href={`/bond/${bond.id}${bond.bondTxHash ? `?bondTxHash=${bond.bondTxHash}` : ""}`}
             className="surface rounded-3xl p-6 transition hover:-translate-y-0.5 hover:border-amber-500/25 hover:bg-white/[0.05]"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">{bond.tokenName}</div>
                 <div className="mt-2 text-2xl font-semibold">{bond.ticker}</div>
-                {bond.id === showcaseProof.bondId ? <div className="mt-2 text-xs font-mono uppercase tracking-[0.2em] text-amber-300">Live BNB mainnet proof</div> : null}
+                {bond.id === showcaseProof.bondId ? <div className="mt-2 text-xs font-mono uppercase tracking-[0.2em] text-amber-300">Live BNB mainnet slash</div> : null}
+                {bond.id === refundProof.bondId ? <div className="mt-2 text-xs font-mono uppercase tracking-[0.2em] text-emerald-300">Live BNB mainnet refund</div> : null}
               </div>
               <div className={`rounded-full px-3 py-1 text-xs font-medium ${
                 bond.status === "SLASHED"

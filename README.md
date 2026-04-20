@@ -32,7 +32,9 @@ Not claimed:
 
 ## Live proof
 
-The current showcase proof is a real BNB mainnet loop around `PatchProof / PATCH` on the **patched vault**:
+The current patched-vault proof set has both mainnet outcomes:
+
+Slash proof, `PatchProof / PATCH`:
 
 - Four.Meme launch tx:
   `0xdeafcf1faf1afd130f75941aa48ea8d7d9a6bc074cf17cfd7293030aa5d7eea4`
@@ -41,11 +43,18 @@ The current showcase proof is a real BNB mainnet loop around `PatchProof / PATCH
 - BondSlashed tx:
   `0x7ce760c03a4d7a0c4c9ce015402572f13410f8b1b747b57f53142a78910a6534`
 
+Refund proof, `RefundSeal / SEAL`:
+
+- Four.Meme launch tx:
+  `0x963c37ef4fa066f0b9a10baa8b36854a31edf0ed7d2f9e970f3e83bbcd44d90b`
+- BondCreated tx:
+  `0x3710bd90f9ec7fb05814e9b90e34d1b169dea6191071439fcdeb3ed4038ffd14`
+- BondRefunded tx:
+  `0x1fb09f67456b66ed00b3d3b5d68cf44ad847c0d6e1826f51aeb33e590c6339b4`
+
 What happened:
-- the creator launched `PATCH` on Four.Meme
-- the creator bonded a `1.02M PATCH` retained-balance floor with `0.006 BNB`
-- the creator sold below the floor
-- the Rug Hunter Agent submitted the slash onchain
+- the creator launched `PATCH` on Four.Meme, bonded a `1.02M PATCH` retained-balance floor with `0.006 BNB`, then sold below the floor and was slashed by the Rug Hunter Agent
+- the creator launched `SEAL` on Four.Meme, bonded a `1.02M SEAL` retained-balance floor with `0.0025 BNB`, kept the balance above floor through expiry plus the hunter grace window, then claimed the refund onchain
 
 Configured vault:
 - `0xd8654b6b4f0fc382f36341ac7fd6c70466950fd5`
@@ -76,14 +85,11 @@ Implemented:
 
 Currently proven on mainnet:
 - one real slashed bond on the patched vault (`PATCH`)
+- one real refunded bond on the patched vault (`SEAL`)
 - one earlier slashed bond on the previous vault (`BIBI`)
 
 Currently proven locally and exposed in-product:
-- clean refund path via `refundAfterExpiry`
 - manual hunter path via `resolveBond`
-
-Not claimed:
-- a second real clean-refund bond already executed on mainnet
 
 ## Commands
 

@@ -42,64 +42,68 @@ export async function getLiveBondById(id: string): Promise<LiveBondRecord | null
 
   const client = getBscPublicClient();
   const bondId = BigInt(id);
-  const bond = await client.readContract({
-    address: vaultAddress,
-    abi: rugBountyVaultAbi,
-    functionName: "getBond",
-    args: [bondId],
-  });
-
-  if (bond.creator === zeroAddress) {
-    return null;
-  }
-
-  const [currentBalance, name, symbol, decimals] = await Promise.all([
-    client.readContract({
+  try {
+    const bond = await client.readContract({
       address: vaultAddress,
       abi: rugBountyVaultAbi,
-      functionName: "currentCreatorBalance",
+      functionName: "getBond",
       args: [bondId],
-    }),
-    client.readContract({
-      address: bond.token,
-      abi: erc20MetadataAbi,
-      functionName: "name",
-    }),
-    client.readContract({
-      address: bond.token,
-      abi: erc20MetadataAbi,
-      functionName: "symbol",
-    }),
-    client.readContract({
-      address: bond.token,
-      abi: erc20MetadataAbi,
-      functionName: "decimals",
-    }),
-  ]);
+    });
 
-  const baseStatus = bond.status === 1 ? "SLASHED" : bond.status === 2 ? "REFUNDED" : "ACTIVE";
-  const status = baseStatus === "ACTIVE" && currentBalance < bond.declaredRetainedBalance ? "AT_RISK" : baseStatus;
+    if (bond.creator === zeroAddress) {
+      return null;
+    }
 
-  return {
-    id,
-    tokenName: name,
-    ticker: symbol.startsWith("$") ? symbol : `$${symbol}`,
-    tokenAddress: getAddress(bond.token),
-    creator: getAddress(bond.creator),
-    declaredCreatorWallets: bond.declaredCreatorWallets.map((wallet) => getAddress(wallet)),
-    bondAmountBnb: formatEther(bond.bondAmount),
-    declaredFloor: formatUnits(bond.declaredRetainedBalance, decimals),
-    currentBalance: formatUnits(currentBalance, decimals),
-    status,
-    expiresAtIso: new Date(Number(bond.expiresAt) * 1000).toISOString(),
-    launchTxHash: bond.launchTxHash,
-    notes:
-      status === "SLASHED"
-        ? "Live vault state shows this bond already slashed."
-        : status === "REFUNDED"
-          ? "Live vault state shows this bond refunded after expiry."
-          : status === "AT_RISK"
-            ? "Live vault state is below the declared floor and can be slashed permissionlessly."
-            : "Live vault state is above the declared floor.",
-  };
+    const [currentBalance, name, symbol, decimals] = await Promise.all([
+      client.readContract({
+        address: vaultAddress,
+        abi: rugBountyVaultAbi,
+        functionName: "currentCreatorBalance",
+        args: [bondId],
+      }),
+      client.readContract({
+        address: bond.token,
+        abi: erc20MetadataAbi,
+        functionName: "name",
+      }),
+      client.readContract({
+        address: bond.token,
+        abi: erc20MetadataAbi,
+        functionName: "symbol",
+      }),
+      client.readContract({
+        address: bond.token,
+        abi: erc20MetadataAbi,
+        functionName: "decimals",
+      }),
+    ]);
+
+    const baseStatus = bond.status === 1 ? "SLASHED" : bond.status === 2 ? "REFUNDED" : "ACTIVE";
+    const status = baseStatus === "ACTIVE" && currentBalance < bond.declaredRetainedBalance ? "AT_RISK" : baseStatus;
+
+    return {
+      id,
+      tokenName: name,
+      ticker: symbol.startsWith("$") ? symbol : `$${symbol}`,
+      tokenAddress: getAddress(bond.token),
+      creator: getAddress(bond.creator),
+      declaredCreatorWallets: bond.declaredCreatorWallets.map((wallet) => getAddress(wallet)),
+      bondAmountBnb: formatEther(bond.bondAmount),
+      declaredFloor: formatUnits(bond.declaredRetainedBalance, decimals),
+      currentBalance: formatUnits(currentBalance, decimals),
+      status,
+      expiresAtIso: new Date(Number(bond.expiresAt) * 1000).toISOString(),
+      launchTxHash: bond.launchTxHash,
+      notes:
+        status === "SLASHED"
+          ? "Live vault state shows this bond already slashed."
+          : status === "REFUNDED"
+            ? "Live vault state shows this bond refunded after expiry."
+            : status === "AT_RISK"
+              ? "Live vault state is below the declared floor and can be slashed permissionlessly."
+              : "Live vault state is above the declared floor.",
+    };
+  } catch {
+    return null;
+  }
 }

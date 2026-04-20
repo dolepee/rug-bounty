@@ -29,38 +29,43 @@ Not claimed:
 - full rug detection
 - hidden-wallet detection
 - on-chain verification of historical Four.Meme launch events
+- during the hackathon demo period, `PROTOCOL_TREASURY` is author-controlled; production deployments should point the 20% protocol leg at a burn, DAO, or multisig
 
 ## Live proof
 
-The current patched-vault proof set has both mainnet outcomes:
+The final-vault proof set has both mainnet outcomes:
 
-Slash proof, `PatchProof / PATCH`:
+Slash proof, `FinalSlash / FSLH`:
 
 - Four.Meme launch tx:
-  `0xdeafcf1faf1afd130f75941aa48ea8d7d9a6bc074cf17cfd7293030aa5d7eea4`
+  `0x9dffb11791807de1d0ef3ebd81a5df68bb6fab9fdaad1118615d42b11ab0c1b9`
 - BondCreated tx:
-  `0xc642798f5dbf33f6d59b97229fe4f505fa555498121f8329b751a37323ec3f64`
+  `0x9a124548380e3b37efbe9b6fb6f6b34f4b78c496d1709ad1b3aaf00eda3a09a2`
 - BondSlashed tx:
-  `0x7ce760c03a4d7a0c4c9ce015402572f13410f8b1b747b57f53142a78910a6534`
+  `0x2f97af4957253462db7e33b6b24069da090a63a03b5310fca7b95fe80249b4e2`
 
-Refund proof, `RefundSeal / SEAL`:
+Refund proof, `FinalRefund / FRFD`:
 
 - Four.Meme launch tx:
-  `0x963c37ef4fa066f0b9a10baa8b36854a31edf0ed7d2f9e970f3e83bbcd44d90b`
+  `0xaaf8cd23968cdcab641e522b0b09c771a660940bdae46e514a2bca9f06da25b4`
 - BondCreated tx:
-  `0x3710bd90f9ec7fb05814e9b90e34d1b169dea6191071439fcdeb3ed4038ffd14`
+  `0x4fa2340dbe8fb66e0af83053d596354efd805b5594483356aa044435a1b8af28`
 - BondRefunded tx:
-  `0x1fb09f67456b66ed00b3d3b5d68cf44ad847c0d6e1826f51aeb33e590c6339b4`
+  `0x18c2cc2b0205c21dc304ae2872a9bb6ce9b3aad54ecce765d27efe11d331103f`
 
 What happened:
-- the creator launched `PATCH` on Four.Meme, bonded a `1.02M PATCH` retained-balance floor with `0.006 BNB`, then sold below the floor and was slashed by the Rug Hunter Agent
-- the creator launched `SEAL` on Four.Meme, bonded a `1.02M SEAL` retained-balance floor with `0.0025 BNB`, kept the balance above floor through expiry plus the hunter grace window, then claimed the refund onchain
+- the creator launched `FSLH` on Four.Meme, bonded a `1.05M FSLH` retained-balance floor with `0.003 BNB`, then sold below the floor and was slashed by the Rug Hunter Agent on the final vault
+- the creator launched `FRFD` on Four.Meme, bonded a `1.05M FRFD` retained-balance floor with `0.005 BNB`, kept the balance above floor through expiry plus the hunter grace window, then claimed the refund on the final vault
 
 Configured vault:
-- `0xd8654b6b4f0fc382f36341ac7fd6c70466950fd5`
+- `0xe010a3457001a0a8a6f2e69cdc962e705dbdedea`
+
+Budget note:
+- these live proof bonds were intentionally kept small so the full mainnet loop could be cycled repeatedly under hackathon budget
+- the primitive itself is not tied to small bond sizes
 
 Archived earlier proof:
-- `BIBI` remains a historical first-pass mainnet proof on the old vault, but the current public showcase and submission narrative are anchored to the patched `PATCH` loop above.
+- older rehearsal loops (`PATCH`, `SEAL`, and `BIBI`) remain real onchain history, but the current public showcase and submission narrative are anchored to the final `FSLH/FRFD` vault above.
 
 ## Current state
 
@@ -84,9 +89,9 @@ Implemented:
 - real mainnet proof loop for launch -> bond -> breach -> slash
 
 Currently proven on mainnet:
-- one real slashed bond on the patched vault (`PATCH`)
-- one real refunded bond on the patched vault (`SEAL`)
-- one earlier slashed bond on the previous vault (`BIBI`)
+- one real slashed bond on the final vault (`FSLH`)
+- one real refunded bond on the final vault (`FRFD`)
+- older archived proof loops on prior vault iterations (`PATCH`, `SEAL`, `BIBI`)
 
 Currently proven locally and exposed in-product:
 - manual hunter path via `resolveBond`

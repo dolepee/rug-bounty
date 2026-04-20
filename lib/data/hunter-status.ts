@@ -7,7 +7,6 @@ export type HunterRuntimeStatus = {
   runtime: "vps-pm2";
   status: "online" | "stale" | "unknown";
   vaultAddress: string | null;
-  walletAddress: string | null;
   lastTickIso: string | null;
   watchedBondIds: string[];
   lastEventLabel: string | null;
@@ -17,7 +16,9 @@ export type HunterRuntimeStatus = {
 };
 
 const onlineWindowMs = 24 * 60 * 60 * 1000;
-const defaultStatusPath = path.join(process.cwd(), "agent", "status.json");
+const defaultStatusPath = path.join(process.cwd(), "agent", "status.runtime.json");
+const cleanEnv = (value?: string | null) => value?.trim() || undefined;
+const configuredVaultAddress = cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) || cleanEnv(process.env.RUG_BOUNTY_VAULT_ADDRESS) || null;
 
 export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
   try {
@@ -26,7 +27,6 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
       runtime?: "vps-pm2";
       status?: "online" | "stale" | "unknown";
       vaultAddress?: string | null;
-      walletAddress?: string | null;
       lastTickIso?: string | null;
       watchedBondIds?: string[] | null;
       lastResolvedBondId?: string | null;
@@ -42,7 +42,6 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
             ? "stale"
             : parsed.status || "unknown",
       vaultAddress: parsed.vaultAddress ?? null,
-      walletAddress: parsed.walletAddress ?? null,
       lastTickIso: parsed.lastTickIso ?? null,
       watchedBondIds: parsed.watchedBondIds ?? [],
       lastEventLabel: parsed.lastResolvedBondId ? `bond #${parsed.lastResolvedBondId} was last resolved by the hunter` : "hunter heartbeat recorded",
@@ -70,8 +69,7 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
   return {
     runtime: "vps-pm2",
     status,
-    vaultAddress: null,
-    walletAddress: null,
+    vaultAddress: configuredVaultAddress,
     lastTickIso: null,
     watchedBondIds: [],
     lastEventLabel: latest?.label ?? null,

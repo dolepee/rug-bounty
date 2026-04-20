@@ -46,8 +46,10 @@ type ParsedLaunchEvidence = {
 const cleanEnv = (value?: string | null) => value?.trim() || undefined;
 const vaultAddress = cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) as Address | undefined;
 const appUrl = cleanEnv(process.env.NEXT_PUBLIC_APP_URL) || "https://rug-bounty.vercel.app";
+const minBondWei = parseEther("0.003");
+const minBondLabel = formatEther(minBondWei);
 
-const initialText = `I will hold at least 1.02M PATCH tokens for 15 minutes.\nBinance listing soon.\nDaily updates.`;
+const initialText = `I will hold at least 1.05M tokens for 15 minutes.\nBinance listing soon.\nDaily updates.`;
 const initialManualLaunch = {
   token: "",
   creator: "",
@@ -82,7 +84,7 @@ export default function CreateBondPage() {
   const [oathText, setOathText] = useState(initialText);
   const [launchTxHash, setLaunchTxHash] = useState("");
   const [declaredWalletsInput, setDeclaredWalletsInput] = useState("");
-  const [bondAmountBnb, setBondAmountBnb] = useState("0.002");
+  const [bondAmountBnb, setBondAmountBnb] = useState(minBondLabel);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [compiled, setCompiled] = useState<CompileResponse | null>(null);
@@ -347,7 +349,11 @@ export default function CreateBondPage() {
         throw new Error("Connected wallet must be included in the declared creator wallet list.");
       }
 
-      const oathHash = keccak256(stringToHex(oathText));
+      const bondAmountWei = parseEther(bondAmountBnb);
+      if (bondAmountWei < minBondWei) {
+        throw new Error(`Bond amount must be at least ${minBondLabel} BNB on the current vault.`);
+      }
+
       const rulesHash = keccak256(
         stringToHex(
           JSON.stringify({
@@ -371,11 +377,11 @@ export default function CreateBondPage() {
           launchTimestamp,
           parsedWallets,
           BigInt(compiled.rule.declaredRetainedBalance),
-          oathHash,
+          oathText,
           rulesHash,
           expiresAt,
         ],
-        value: parseEther(bondAmountBnb),
+        value: bondAmountWei,
         account: address,
       });
 
@@ -540,6 +546,9 @@ export default function CreateBondPage() {
                         {warning}
                       </div>
                     ))}
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+                      Once a floor breach is flagged onchain, refund is permanently locked even if the creator later buys back above floor.
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -572,6 +581,10 @@ export default function CreateBondPage() {
               </div>
             </div>
 
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm text-zinc-300">
+              During the hackathon demo period, the 20% protocol leg routes to an author-controlled treasury. Production deployments should point it at a burn, DAO, or multisig.
+            </div>
+
             {classifierError ? (
               <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{classifierError}</div>
             ) : null}
@@ -580,6 +593,7 @@ export default function CreateBondPage() {
               <div>
                 <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Bond amount</label>
                 <input value={bondAmountBnb} onChange={(event) => setBondAmountBnb(event.target.value)} placeholder="0.02" className="font-mono" />
+                <div className="mt-2 text-xs text-zinc-500">Minimum bond on the current vault: {minBondLabel} BNB.</div>
               </div>
               <div className="flex items-end">
                 <button className="button-primary rounded-xl px-5 py-3 text-sm" onClick={submitBond} disabled={submitLoading} type="button">

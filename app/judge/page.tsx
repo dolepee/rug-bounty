@@ -30,18 +30,18 @@ export default async function JudgeModePage() {
     <section className="section-shell py-12">
       <div className="mb-8 max-w-4xl">
         <div className="font-mono text-xs uppercase tracking-[0.22em] text-zinc-500">Judge mode</div>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight">One page, all live proof.</h1>
+        <h1 className="mt-2 text-4xl font-semibold tracking-tight">A trust primitive for Four.Meme, with live proof.</h1>
         <p className="mt-4 text-sm leading-7 text-zinc-400">
-          This page compresses the live proof set into one surface: verified vault, both patched-vault outcomes, hunter runtime, and the exact proof model.
+          Four.Meme makes launches fast. RugBounty adds the missing trust layer: one public, slashable promise about the creator&apos;s own bag. This page compresses the proof set into one surface: live vault, both mainnet outcomes, hunter runtime, and the exact proof model.
         </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="surface rounded-3xl p-6">
-          <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Verified vault</div>
+        <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Verified vault</div>
           <div className="mt-3 text-2xl font-semibold text-zinc-50">{vaultAddress ?? "not configured"}</div>
           <p className="mt-3 text-sm leading-7 text-zinc-400">
-            The live vault is verified on BscScan and is the same patched contract that produced both the slash and refund proofs.
+            The verified vault on BscScan is the contract that turns a creator promise into a narrow economic consequence. It is not trying to judge all rugs. It is enforcing one explicit launch commitment.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             {vaultAddress ? (
@@ -74,8 +74,8 @@ export default async function JudgeModePage() {
               </span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-zinc-500">Watcher wallet</span>
-              <span className="font-mono text-right text-zinc-300">{hunterStatus.walletAddress ?? "not exposed"}</span>
+              <span className="text-zinc-500">Watcher identity</span>
+              <span className="text-right text-zinc-300">public hunter not disclosed in status snapshot</span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-zinc-500">Watched vault</span>
@@ -157,6 +157,32 @@ export default async function JudgeModePage() {
         ) : null}
       </div>
 
+      <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="surface rounded-3xl p-6">
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Why Four.Meme specifically</div>
+          <div className="mt-4 grid gap-4">
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+              Four.Meme compresses launch speed, attention, and speculation into the same first few minutes. That makes trust the missing primitive, not more analytics.
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+              RugBounty gives an honest creator a stronger first message than “trust me”: a public promise with money attached, a proof page, and a certificate they can share immediately.
+            </div>
+          </div>
+        </div>
+
+        <div className="surface rounded-3xl p-6">
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Demo budget note</div>
+          <div className="mt-4 space-y-3 text-sm text-zinc-300">
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+              The live proof bonds are intentionally small because they were cycled under hackathon budget on BNB mainnet.
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+              That is a demo constraint, not a product constraint. The primitive scales independently of the amount used in the proof loops.
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="mt-8 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="surface rounded-3xl p-6">
           <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Proof model</div>
@@ -177,6 +203,7 @@ export default async function JudgeModePage() {
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">This does not detect hidden undeclared wallets.</div>
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">The vault records launch metadata for display, but does not verify Four.Meme history onchain.</div>
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">Slash is permissionless. The agent is a live hunter, not a privileged oracle.</div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">During the hackathon demo period, the 20% protocol leg routes to an author-controlled treasury. Production deployments should point it at a burn, DAO, or multisig.</div>
           </div>
         </div>
       </div>

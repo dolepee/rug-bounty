@@ -18,7 +18,7 @@ type BondActionPanelProps = {
   expiresAtIso: string;
 };
 
-type ActionKind = "resolveBond" | "refundAfterExpiry";
+type ActionKind = "flagBreach" | "resolveBond" | "refundAfterExpiry";
 
 export function BondActionPanel({ bondId, creator, status, expiresAtIso }: BondActionPanelProps) {
   const router = useRouter();
@@ -92,8 +92,9 @@ export function BondActionPanel({ bondId, creator, status, expiresAtIso }: BondA
     <div className="surface rounded-3xl p-6">
       <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Manual action surface</div>
       <div className="mt-4 space-y-3 text-sm text-zinc-400">
-        <p>Any non-declared wallet can attempt <code>resolveBond</code>. If the floor is intact, the tx reverts. If the current balance is below the declared floor, the caller takes the bond.</p>
-        <p>Only the creator can call <code>refundAfterExpiry</code>, and only after expiry plus the 10 minute post-expiry hunter window while the bond is still above floor.</p>
+        <p>Any wallet can call <code>flagBreach</code> while the floor is below the declared minimum. That permanently records the breach and locks refund.</p>
+        <p>Any non-declared wallet can attempt <code>resolveBond</code>. If the floor is intact and no breach has been flagged, the tx reverts. Once a breach is flagged, the bond stays slashable even if the creator rebuys above floor later.</p>
+        <p>Only the creator can call <code>refundAfterExpiry</code>, and only after expiry plus the 10 minute post-expiry hunter window while no breach has been recorded and the bond is still above floor.</p>
         <p>Refund unlock time on this browser clock: <span className="font-mono text-zinc-300">{refundUnlockAtLabel}</span></p>
         <p>
           Current state:
@@ -106,6 +107,14 @@ export function BondActionPanel({ bondId, creator, status, expiresAtIso }: BondA
       <div className="mt-5 flex flex-wrap gap-3">
         <button className="button-secondary rounded-xl px-4 py-3 text-sm" type="button" onClick={connectWallet}>
           {walletAddress ? `Wallet: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "Connect Wallet"}
+        </button>
+        <button
+          className="button-secondary rounded-xl px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          type="button"
+          disabled={!canTrySlash || pendingAction !== null}
+          onClick={() => submitAction("flagBreach")}
+        >
+          {pendingAction === "flagBreach" ? "Flagging breach..." : "Flag breach"}
         </button>
         <button
           className="button-primary rounded-xl px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"

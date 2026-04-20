@@ -11,3 +11,4 @@ dist
 *.tsbuildinfo
 .generated-wallets.json
 agent/feed.json
+agent/status.runtime.json

@@ -10,7 +10,7 @@ const vaultAddress = process.env.RUG_BOUNTY_VAULT_ADDRESS || process.env.NEXT_PU
 const startBlock = process.env.RUG_BOUNTY_START_BLOCK;
 const pollMs = Number(process.env.RUG_HUNTER_POLL_MS || 15000);
 const feedPath = (process.env.RUG_HUNTER_FEED_PATH || path.join(process.cwd(), "agent", "feed.json")).trim();
-const statusPath = (process.env.RUG_HUNTER_STATUS_PATH || path.join(process.cwd(), "agent", "status.json")).trim();
+const statusPath = (process.env.RUG_HUNTER_STATUS_PATH || path.join(process.cwd(), "agent", "status.runtime.json")).trim();
 const postExpirySlashWindowSeconds = Number(process.env.RUG_HUNTER_POST_EXPIRY_SLASH_WINDOW_SECONDS || 600);
 const fallbackRpcs = [
   primaryRpc,
@@ -35,12 +35,12 @@ const rugBountyVaultAbi = [
           { name: "launchTimestamp", type: "uint256" },
           { name: "declaredCreatorWallets", type: "address[]" },
           { name: "declaredRetainedBalance", type: "uint256" },
-          { name: "baselineTotalSupply", type: "uint256" },
           { name: "bondAmount", type: "uint256" },
           { name: "createdAt", type: "uint256" },
           { name: "expiresAt", type: "uint256" },
           { name: "oathHash", type: "bytes32" },
           { name: "rulesHash", type: "bytes32" },
+          { name: "breachObserved", type: "bool" },
           { name: "status", type: "uint8" },
           { name: "slashedTo", type: "address" },
         ],
@@ -53,6 +53,13 @@ const rugBountyVaultAbi = [
     stateMutability: "view",
     inputs: [{ name: "bondId", type: "uint256" }],
     outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "flagBreach",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "bondId", type: "uint256" }],
+    outputs: [],
   },
   {
     type: "function",
@@ -73,9 +80,9 @@ const rugBountyVaultAbi = [
       { indexed: false, name: "launchTimestamp", type: "uint256" },
       { indexed: false, name: "declaredCreatorWallets", type: "address[]" },
       { indexed: false, name: "declaredRetainedBalance", type: "uint256" },
-      { indexed: false, name: "baselineTotalSupply", type: "uint256" },
       { indexed: false, name: "bondAmount", type: "uint256" },
       { indexed: false, name: "expiresAt", type: "uint256" },
+      { indexed: false, name: "oathText", type: "string" },
       { indexed: false, name: "oathHash", type: "bytes32" },
       { indexed: false, name: "rulesHash", type: "bytes32" },
     ],
@@ -210,21 +217,43 @@ async function main() {
     }
 
     const now = BigInt(Math.floor(Date.now() / 1000));
-    if (now >= bond.expiresAt + BigInt(postExpirySlashWindowSeconds)) {
+    if (now >= bond.expiresAt + BigInt(postExpirySlashWindowSeconds) && !bond.breachObserved) {
       console.log(`[rug-hunter] bond ${bondId} passed the post-expiry hunter window`);
       return;
     }
 
-    if (currentBalance >= bond.declaredRetainedBalance) {
+    if (currentBalance >= bond.declaredRetainedBalance && !bond.breachObserved) {
       console.log(`[rug-hunter] bond ${bondId} intact (${currentBalance} >= ${bond.declaredRetainedBalance})`);
       return;
     }
 
-    console.log(`[rug-hunter] floor breach on bond ${bondId}; submitting resolveBond`);
-    await recordFeedEntry({
-      id: `breach-${bondId}`,
-      label: `floor breach detected for bond #${bondId}`,
-    });
+    if (!bond.breachObserved) {
+      console.log(`[rug-hunter] floor breach on bond ${bondId}; submitting flagBreach`);
+      await recordFeedEntry({
+        id: `breach-${bondId}`,
+        label: `floor breach detected for bond #${bondId}`,
+      });
+      try {
+        const flagHash = await walletClient.writeContract({
+          address: normalizedVaultAddress,
+          abi: rugBountyVaultAbi,
+          functionName: "flagBreach",
+          args: [BigInt(bondId)],
+          account,
+        });
+        console.log(`[rug-hunter] breach flag tx ${flagHash}`);
+        await client.waitForTransactionReceipt({ hash: flagHash });
+        await recordFeedEntry({
+          id: `flagged-${bondId}`,
+          label: `bond #${bondId} permanently marked as breached`,
+          txHash: flagHash,
+        });
+      } catch (error) {
+        console.warn(`[rug-hunter] flagBreach race on bond ${bondId}; continuing to resolve`, error);
+      }
+    }
+
+    console.log(`[rug-hunter] breach locked for bond ${bondId}; submitting resolveBond`);
     const hash = await walletClient.writeContract({
       address: normalizedVaultAddress,
       abi: rugBountyVaultAbi,
@@ -258,7 +287,6 @@ async function main() {
       runtime: "vps-pm2",
       status: "online",
       vaultAddress: normalizedVaultAddress,
-      walletAddress: account.address,
       lastTickIso: new Date().toISOString(),
       watchedBondIds: Array.from(activeBondIds),
       lastResolvedBondId,

@@ -3,6 +3,8 @@ import { getAddress, isAddress, keccak256, parseEther, stringToHex, type Address
 import { z } from "zod";
 import { rugBountyVaultAbi } from "@/lib/chain/rug-bounty";
 
+const minBondWei = parseEther("0.003");
+
 const schema = z.object({
   token: z.string().refine((value) => isAddress(value), "Invalid token address."),
   creator: z.string().refine((value) => isAddress(value), "Invalid creator address."),
@@ -38,6 +40,11 @@ export async function POST(request: Request) {
 
   const launchTimestamp = BigInt(body.launchTimestamp);
   const expiresAt = launchTimestamp + BigInt(body.expiresInSeconds);
+  const bondAmountWei = parseEther(body.bondAmountBnb);
+
+  if (bondAmountWei < minBondWei) {
+    return NextResponse.json({ error: "Bond amount is below the current vault minimum." }, { status: 400 });
+  }
 
   return NextResponse.json({
     contract: {
@@ -49,11 +56,11 @@ export async function POST(request: Request) {
         launchTimestamp.toString(),
         declaredCreatorWallets,
         body.declaredRetainedBalance,
-        oathHash,
+        body.oathText,
         rulesHash,
         expiresAt.toString(),
       ],
-      valueWei: parseEther(body.bondAmountBnb).toString(),
+      valueWei: bondAmountWei.toString(),
     },
     proof: {
       creator: getAddress(body.creator),

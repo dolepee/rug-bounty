@@ -11,6 +11,10 @@ contract RugBountyVault {
     uint256 public constant POST_EXPIRY_SLASH_WINDOW = 10 minutes;
     uint256 public constant MIN_FLOOR_BPS = 10; // 0.1%
     uint256 public constant MAX_DECLARED_WALLETS = 8;
+    uint256 public constant MIN_BOND = 0.003 ether;
+    uint256 public constant HUNTER_PAYOUT_BPS = 8000; // 80%
+    uint256 public constant PROTOCOL_PAYOUT_BPS = 2000; // 20%
+    address payable public constant PROTOCOL_TREASURY = payable(0xbad35FA6e368e90fC4faf63507F2D0A2Fdf94BAF);
 
     enum BondStatus {
         ACTIVE,
@@ -25,12 +29,12 @@ contract RugBountyVault {
         uint256 launchTimestamp;
         address[] declaredCreatorWallets;
         uint256 declaredRetainedBalance;
-        uint256 baselineTotalSupply;
         uint256 bondAmount;
         uint256 createdAt;
         uint256 expiresAt;
         bytes32 oathHash;
         bytes32 rulesHash;
+        bool breachObserved;
         BondStatus status;
         address slashedTo;
     }
@@ -46,17 +50,25 @@ contract RugBountyVault {
         uint256 launchTimestamp,
         address[] declaredCreatorWallets,
         uint256 declaredRetainedBalance,
-        uint256 baselineTotalSupply,
         uint256 bondAmount,
         uint256 expiresAt,
+        string oathText,
         bytes32 oathHash,
         bytes32 rulesHash
+    );
+
+    event BondBreachFlagged(
+        uint256 indexed bondId,
+        address indexed observer,
+        uint256 currentBalance,
+        uint256 declaredRetainedBalance
     );
 
     event BondSlashed(
         uint256 indexed bondId,
         address indexed hunter,
-        uint256 bondPayout,
+        uint256 hunterPayout,
+        uint256 protocolPayout,
         uint256 currentBalance,
         uint256 declaredRetainedBalance
     );
@@ -80,6 +92,8 @@ contract RugBountyVault {
     error CreatorBalanceBelowFloor();
     error CreatorBalanceStillAtOrAboveFloor();
     error FloorTooLow();
+    error BreachAlreadyObserved();
+    error BreachPreviouslyObserved();
     error HunterCannotBeDeclaredWallet();
     error TransferFailed();
 
@@ -89,12 +103,12 @@ contract RugBountyVault {
         uint256 launchTimestamp,
         address[] calldata declaredCreatorWallets,
         uint256 declaredRetainedBalance,
-        bytes32 oathHash,
+        string calldata oathText,
         bytes32 rulesHash,
         uint256 expiresAt
     ) external payable returns (uint256 bondId) {
         if (token == address(0)) revert InvalidToken();
-        if (msg.value == 0) revert InvalidBondAmount();
+        if (msg.value < MIN_BOND) revert InvalidBondAmount();
         if (declaredCreatorWallets.length == 0 || declaredCreatorWallets.length > MAX_DECLARED_WALLETS) {
             revert InvalidDeclaredWallets();
         }
@@ -115,6 +129,7 @@ contract RugBountyVault {
         uint256 totalSupply = IERC20Minimal(token).totalSupply();
         if (declaredRetainedBalance == 0) revert FloorTooLow();
         if (declaredRetainedBalance * 10000 < totalSupply * MIN_FLOOR_BPS) revert FloorTooLow();
+        bytes32 oathHash = keccak256(bytes(oathText));
 
         uint256 current = _currentCreatorBalanceCalldata(token, declaredCreatorWallets);
         if (current < declaredRetainedBalance) revert CreatorBalanceBelowFloor();
@@ -126,7 +141,6 @@ contract RugBountyVault {
         bond.launchTxHash = launchTxHash;
         bond.launchTimestamp = launchTimestamp;
         bond.declaredRetainedBalance = declaredRetainedBalance;
-        bond.baselineTotalSupply = totalSupply;
         bond.bondAmount = msg.value;
         bond.createdAt = block.timestamp;
         bond.expiresAt = expiresAt;
@@ -138,40 +152,52 @@ contract RugBountyVault {
             bond.declaredCreatorWallets.push(declaredCreatorWallets[i]);
         }
 
-        emit BondCreated(
-            bondId,
-            bond.creator,
-            bond.token,
-            bond.launchTxHash,
-            bond.launchTimestamp,
-            bond.declaredCreatorWallets,
-            bond.declaredRetainedBalance,
-            bond.baselineTotalSupply,
-            bond.bondAmount,
-            bond.expiresAt,
-            bond.oathHash,
-            bond.rulesHash
-        );
+        _emitBondCreated(bondId, bond, oathText);
+    }
+
+    function flagBreach(uint256 bondId) external {
+        Bond storage bond = bonds[bondId];
+        if (bond.status != BondStatus.ACTIVE) revert BondNotActive();
+        if (block.timestamp >= bond.expiresAt + POST_EXPIRY_SLASH_WINDOW) revert BondExpired();
+        if (bond.breachObserved) revert BreachAlreadyObserved();
+
+        uint256 current = _currentCreatorBalance(bond.token, bond.declaredCreatorWallets);
+        if (current >= bond.declaredRetainedBalance) revert CreatorBalanceStillAtOrAboveFloor();
+
+        bond.breachObserved = true;
+
+        emit BondBreachFlagged(bondId, msg.sender, current, bond.declaredRetainedBalance);
     }
 
     function resolveBond(uint256 bondId) external {
         Bond storage bond = bonds[bondId];
         if (bond.status != BondStatus.ACTIVE) revert BondNotActive();
-        if (block.timestamp >= bond.expiresAt + POST_EXPIRY_SLASH_WINDOW) revert BondExpired();
+        if (!bond.breachObserved && block.timestamp >= bond.expiresAt + POST_EXPIRY_SLASH_WINDOW) revert BondExpired();
         if (_isDeclaredWalletStorage(bond.declaredCreatorWallets, msg.sender)) revert HunterCannotBeDeclaredWallet();
 
         uint256 current = _currentCreatorBalance(bond.token, bond.declaredCreatorWallets);
-        if (current >= bond.declaredRetainedBalance) revert CreatorBalanceStillAtOrAboveFloor();
+        if (current >= bond.declaredRetainedBalance && !bond.breachObserved) revert CreatorBalanceStillAtOrAboveFloor();
+        if (!bond.breachObserved) {
+            bond.breachObserved = true;
+        }
 
         bond.status = BondStatus.SLASHED;
         bond.slashedTo = msg.sender;
         uint256 payout = bond.bondAmount;
         bond.bondAmount = 0;
+        uint256 protocolPayout = (payout * PROTOCOL_PAYOUT_BPS) / 10000;
+        uint256 hunterPayout = payout - protocolPayout;
 
-        (bool success, ) = payable(msg.sender).call{value: payout}("");
-        if (!success) revert TransferFailed();
+        if (hunterPayout > 0) {
+            (bool success, ) = payable(msg.sender).call{value: hunterPayout}("");
+            if (!success) revert TransferFailed();
+        }
+        if (protocolPayout > 0) {
+            (bool success, ) = PROTOCOL_TREASURY.call{value: protocolPayout}("");
+            if (!success) revert TransferFailed();
+        }
 
-        emit BondSlashed(bondId, msg.sender, payout, current, bond.declaredRetainedBalance);
+        emit BondSlashed(bondId, msg.sender, hunterPayout, protocolPayout, current, bond.declaredRetainedBalance);
     }
 
     function refundAfterExpiry(uint256 bondId) external {
@@ -179,6 +205,7 @@ contract RugBountyVault {
         if (bond.status != BondStatus.ACTIVE) revert BondNotActive();
         if (msg.sender != bond.creator) revert NotCreator();
         if (block.timestamp < bond.expiresAt + POST_EXPIRY_SLASH_WINDOW) revert BondNotExpired();
+        if (bond.breachObserved) revert BreachPreviouslyObserved();
 
         uint256 current = _currentCreatorBalance(bond.token, bond.declaredCreatorWallets);
         if (current < bond.declaredRetainedBalance) revert CreatorBalanceBelowFloor();
@@ -212,6 +239,23 @@ contract RugBountyVault {
         for (uint256 i = 0; i < declaredWallets.length; i++) {
             sum += IERC20Minimal(token).balanceOf(declaredWallets[i]);
         }
+    }
+
+    function _emitBondCreated(uint256 bondId, Bond storage bond, string calldata oathText) internal {
+        emit BondCreated(
+            bondId,
+            bond.creator,
+            bond.token,
+            bond.launchTxHash,
+            bond.launchTimestamp,
+            bond.declaredCreatorWallets,
+            bond.declaredRetainedBalance,
+            bond.bondAmount,
+            bond.expiresAt,
+            oathText,
+            bond.oathHash,
+            bond.rulesHash
+        );
     }
 
     function _isDeclaredWalletStorage(address[] storage declaredWallets, address account) internal view returns (bool) {

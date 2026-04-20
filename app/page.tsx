@@ -24,16 +24,19 @@ export default async function HomePage() {
           <div className="mx-auto max-w-4xl text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full px-4 py-2 status-chip font-mono text-xs uppercase tracking-[0.24em]">
               <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
-              RugBounty / Viral mode: Rug Me If You Can
+              RugBounty / Bonded Launches For Four.Meme
             </div>
             <h1 className="text-5xl font-semibold tracking-tight text-zinc-50 sm:text-6xl">
-              Pay me if I rug.
+              Bonded launches for Four.Meme.
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-zinc-300">
-              Four.Meme creators lock BNB behind one public promise about their own bag. If they break the floor, an autonomous hunter can call the vault and take the bond.
+              RugBounty is a trust primitive for meme launches. A creator locks BNB behind one narrow public promise about their own bag. If the declared floor breaks, any hunter can take the bond.
             </p>
             <p className="mx-auto mt-4 max-w-2xl rounded-2xl border border-amber-500/20 bg-amber-500/10 px-5 py-3 text-sm leading-7 text-amber-100">
-              This does not detect every rug. It enforces one public promise with money attached.
+              Not a rug detector. Not a vague reputation score. One enforceable promise with money attached.
+            </p>
+            <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-zinc-400">
+              For honest creators, the bond is not just punishment insurance. It becomes a conversion asset: a proof link, a certificate, and a faster answer to “why should I trust this launch?”
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link href="/create" className="button-primary rounded-xl px-5 py-3 text-sm">
@@ -58,10 +61,10 @@ export default async function HomePage() {
                 <div>
                   <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live mainnet outcomes</div>
                   <h2 className="mt-2 text-2xl font-semibold text-zinc-50">
-                    Slash and clean refund are both proven on the patched vault.
+                    Two outcomes are proven on BNB mainnet.
                   </h2>
                   <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">
-                    The public proof set now has both outcomes on BNB mainnet: PATCH shows the autonomous hunter slash path, and SEAL shows the creator refund path after expiry plus the hunter grace window.
+                    The public proof set shows both sides of the primitive: break the promise and lose the bond, keep the promise and claim it back. These demo bonds are intentionally small because they were cycled live under hackathon budget. The primitive itself is not tied to small amounts.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
@@ -80,7 +83,7 @@ export default async function HomePage() {
                         {showcase.ticker} was launched, bonded, breached, and slashed.
                       </h3>
                       <p className="mt-3 text-sm leading-7 text-zinc-400">
-                        The creator launched PATCH on Four.Meme, bonded a 1.02M floor, sold below it, and the autonomous Rug Hunter Agent captured the bond on the patched vault.
+                        This is the trust rail under failure: a creator launched on Four.Meme, bonded a public floor, broke it, and the autonomous hunter captured the bond onchain.
                       </p>
                     </div>
                     <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -116,7 +119,7 @@ export default async function HomePage() {
                         {refundBond.ticker} was launched, bonded, held, and refunded.
                       </h3>
                       <p className="mt-3 text-sm leading-7 text-zinc-400">
-                        The creator launched SEAL on Four.Meme, bonded a 1.02M floor, kept the balance intact through expiry and the 10 minute hunter window, then reclaimed the bond on the patched vault.
+                        This is the trust rail under success: a creator launched on Four.Meme, kept the promised floor intact through expiry and the hunter window, then reclaimed the bond cleanly onchain.
                       </p>
                     </div>
                     <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
@@ -213,7 +216,7 @@ export default async function HomePage() {
                 {hunterStatus.lastResolvedBondId ? `#${hunterStatus.lastResolvedBondId}` : "None yet"}
               </div>
               <div className="mt-2 text-sm text-zinc-400">
-                {hunterStatus.walletAddress ? `Hunter wallet ${hunterStatus.walletAddress}` : "Hunter wallet not exposed in status snapshot."}
+                Hunter wallet is intentionally not exposed in the public status snapshot.
               </div>
             </div>
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
@@ -260,8 +263,8 @@ export default async function HomePage() {
             {[
               {
                 icon: SearchCheck,
-                title: "Legible primitive",
-                body: "Creator-initiated bond plus permissionless slash is easy to explain and hard to confuse with another scanner.",
+                title: "Trust primitive",
+                body: "This is not another token scanner. It is a new launch primitive: creator bond plus public promise plus permissionless consequence.",
               },
               {
                 icon: Bot,
@@ -269,14 +272,14 @@ export default async function HomePage() {
                 body: "The Rug Hunter Agent watches floor breaches and lands the slash tx itself. That is actual trigger -> action -> result.",
               },
               {
-                icon: ScrollText,
-                title: "Honest proof model",
-                body: "The product says exactly what the vault enforces, what the app parses, and what AI only assists.",
+                icon: ShieldAlert,
+                title: "Creator-side incentive",
+                body: "Honest creators get something useful, not just a threat. The bond becomes a proof page, certificate, and trust signal at launch time.",
               },
               {
-                icon: ShieldAlert,
-                title: "Creator incentive",
-                body: "Bonded launches get a certificate page and a share card. The bond becomes a marketing asset, not just a punishment rail.",
+                icon: ScrollText,
+                title: "Four.Meme-native fit",
+                body: "Four.Meme compresses launch speed and attention. RugBounty adds the missing trust layer at the exact moment a new token needs credibility.",
               },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-white/8 bg-white/2 p-5">
@@ -294,19 +297,19 @@ export default async function HomePage() {
             <div className="rounded-2xl border border-white/8 bg-white/2 p-4">
               <div className="text-sm font-semibold text-zinc-100">Vault-enforced</div>
               <p className="mt-2 text-sm leading-7 text-zinc-400">
-                The vault stores declared creator wallets, a retained-balance floor, expiry, and the BNB bond. `resolveBond` reads live balances and slashes only if the floor is breached before expiry or during the short post-expiry hunter window.
+                The vault stores declared creator wallets, a retained-balance floor, expiry, and the BNB bond. It is a narrow trust contract, not a general anti-rug oracle.
               </p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-white/2 p-4">
               <div className="text-sm font-semibold text-zinc-100">App-verified</div>
               <p className="mt-2 text-sm leading-7 text-zinc-400">
-                The app parses the real Four.Meme TokenCreate receipt and shows the raw launch data. The vault records the launch metadata for display, but does not claim on-chain verification.
+                The app parses the real Four.Meme TokenCreate receipt and shows the raw launch data. That makes the bond legible to traders without pretending the vault verifies all launch history onchain.
               </p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-white/2 p-4">
               <div className="text-sm font-semibold text-zinc-100">AI-assisted</div>
               <p className="mt-2 text-sm leading-7 text-zinc-400">
-                AI classifies promises into enforceable, social-only, and rejected claims. It compiles the bondable rule and narrates the result. It does not decide slash.
+                AI classifies promises into enforceable, social-only, and rejected claims. It helps creators write cleaner bonds. It does not decide slash or refund.
               </p>
             </div>
           </div>

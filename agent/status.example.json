@@ -1,0 +1,9 @@
+{
+  "runtime": "vps-pm2",
+  "status": "online",
+  "vaultAddress": "0x0000000000000000000000000000000000000000",
+  "lastTickIso": "2026-04-20T00:00:00.000Z",
+  "watchedBondIds": [],
+  "lastResolvedBondId": null,
+  "lastResolvedTxHash": null
+}

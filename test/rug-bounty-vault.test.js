@@ -21,6 +21,9 @@ const TOTAL_SUPPLY = 1_000_000_000n * 10n ** 18n;
 const FLOOR = 1_050_000n * 10n ** 18n;
 const BELOW_FLOOR_BALANCE = 1_000_000n * 10n ** 18n;
 const BREACH_TRANSFER_AMOUNT = TOTAL_SUPPLY - BELOW_FLOOR_BALANCE;
+const HUNTER_PAYOUT = parseEther("0.8");
+const PROTOCOL_PAYOUT = parseEther("0.2");
+const PROTOCOL_TREASURY = "0xbad35FA6e368e90fC4faf63507F2D0A2Fdf94BAF";
 
 const compiledArtifacts = compileContracts();
 
@@ -38,6 +41,7 @@ test("createBond stores an active bonded launch with the declared floor", async 
     assert.equal(bond.creator.toLowerCase(), fixture.creator.account.address.toLowerCase());
     assert.equal(bond.token.toLowerCase(), fixture.tokenAddress.toLowerCase());
     assert.equal(bond.status, 0);
+    assert.equal(bond.breachObserved, false);
     assert.equal(bond.declaredRetainedBalance, FLOOR);
     assert.equal(bond.bondAmount, parseEther("1"));
   } finally {
@@ -45,7 +49,7 @@ test("createBond stores an active bonded launch with the declared floor", async 
   }
 });
 
-test("resolveBond slashes when creator balance drops below the floor", async () => {
+test("resolveBond slashes with an 80/20 hunter-protocol split when creator balance drops below the floor", async () => {
   const fixture = await createFixture();
   try {
     const bondId = await createBond(fixture);
@@ -64,7 +68,7 @@ test("resolveBond slashes when creator balance drops below the floor", async () 
       args: [bondId],
       account: fixture.hunter.account,
     });
-    await fixture.publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await fixture.publicClient.waitForTransactionReceipt({ hash });
 
     const bond = await fixture.publicClient.readContract({
       address: fixture.vaultAddress,
@@ -75,6 +79,28 @@ test("resolveBond slashes when creator balance drops below the floor", async () 
     assert.equal(bond.status, 1);
     assert.equal(bond.slashedTo.toLowerCase(), fixture.hunter.account.address.toLowerCase());
     assert.equal(bond.bondAmount, 0n);
+    assert.equal(bond.breachObserved, true);
+
+    const slashLog = receipt.logs.find((entry) => {
+      try {
+        const decoded = decodeEventLog({
+          abi: fixture.vaultArtifact.abi,
+          data: entry.data,
+          topics: entry.topics,
+        });
+        return decoded.eventName === "BondSlashed";
+      } catch {
+        return false;
+      }
+    });
+    const decodedSlashLog = decodeEventLog({
+      abi: fixture.vaultArtifact.abi,
+      data: slashLog.data,
+      topics: slashLog.topics,
+    });
+    assert.equal(decodedSlashLog.args.hunterPayout, HUNTER_PAYOUT);
+    assert.equal(decodedSlashLog.args.protocolPayout, PROTOCOL_PAYOUT);
+    assert.equal(await fixture.publicClient.getBalance({ address: PROTOCOL_TREASURY }), PROTOCOL_PAYOUT);
   } finally {
     await fixture.close();
   }
@@ -124,6 +150,61 @@ test("resolveBond reverts while the creator balance is still above the floor", a
   }
 });
 
+test("flagBreach permanently marks the bond and resolveBond still works after the creator rebuys above floor", async () => {
+  const fixture = await createFixture();
+  try {
+    const bondId = await createBond(fixture, { expiresInSeconds: 120 });
+    await fixture.creator.walletClient.writeContract({
+      address: fixture.tokenAddress,
+      abi: fixture.tokenArtifact.abi,
+      functionName: "transfer",
+      args: [fixture.outsider.account.address, BREACH_TRANSFER_AMOUNT],
+      account: fixture.creator.account,
+    });
+
+    const flagHash = await fixture.hunter.walletClient.writeContract({
+      address: fixture.vaultAddress,
+      abi: fixture.vaultArtifact.abi,
+      functionName: "flagBreach",
+      args: [bondId],
+      account: fixture.hunter.account,
+    });
+    await fixture.publicClient.waitForTransactionReceipt({ hash: flagHash });
+
+    await fixture.outsider.walletClient.writeContract({
+      address: fixture.tokenAddress,
+      abi: fixture.tokenArtifact.abi,
+      functionName: "transfer",
+      args: [fixture.creator.account.address, BREACH_TRANSFER_AMOUNT],
+      account: fixture.outsider.account,
+    });
+
+    await fixture.provider.request({ method: "evm_increaseTime", params: [13 * 60] });
+    await fixture.provider.request({ method: "evm_mine", params: [] });
+
+    const slashHash = await fixture.hunter.walletClient.writeContract({
+      address: fixture.vaultAddress,
+      abi: fixture.vaultArtifact.abi,
+      functionName: "resolveBond",
+      args: [bondId],
+      account: fixture.hunter.account,
+    });
+    await fixture.publicClient.waitForTransactionReceipt({ hash: slashHash });
+
+    const bond = await fixture.publicClient.readContract({
+      address: fixture.vaultAddress,
+      abi: fixture.vaultArtifact.abi,
+      functionName: "getBond",
+      args: [bondId],
+    });
+    assert.equal(bond.status, 1);
+    assert.equal(bond.breachObserved, true);
+    assert.equal(bond.slashedTo.toLowerCase(), fixture.hunter.account.address.toLowerCase());
+  } finally {
+    await fixture.close();
+  }
+});
+
 test("refundAfterExpiry returns the bond to the creator after expiry", async () => {
   const fixture = await createFixture();
   try {
@@ -153,7 +234,7 @@ test("refundAfterExpiry returns the bond to the creator after expiry", async () 
   }
 });
 
-test("resolveBond still works during the post-expiry grace window", async () => {
+test("resolveBond still works during the post-expiry grace window before refund unlock", async () => {
   const fixture = await createFixture();
   try {
     const bondId = await createBond(fixture, { expiresInSeconds: 120 });
@@ -183,7 +264,7 @@ test("resolveBond still works during the post-expiry grace window", async () => 
       args: [bondId],
     });
     assert.equal(bond.status, 1);
-    assert.equal(bond.slashedTo.toLowerCase(), fixture.hunter.account.address.toLowerCase());
+    assert.equal(bond.breachObserved, true);
   } finally {
     await fixture.close();
   }
@@ -225,7 +306,7 @@ test("refundAfterExpiry reverts once a bond has already been slashed", async () 
   }
 });
 
-test("refundAfterExpiry reverts when the creator is still below floor after the grace window", async () => {
+test("refundAfterExpiry reverts after a flagged breach even if the creator rebuys above floor", async () => {
   const fixture = await createFixture();
   try {
     const bondId = await createBond(fixture, { expiresInSeconds: 120 });
@@ -236,6 +317,24 @@ test("refundAfterExpiry reverts when the creator is still below floor after the 
       args: [fixture.outsider.account.address, BREACH_TRANSFER_AMOUNT],
       account: fixture.creator.account,
     });
+
+    const flagHash = await fixture.hunter.walletClient.writeContract({
+      address: fixture.vaultAddress,
+      abi: fixture.vaultArtifact.abi,
+      functionName: "flagBreach",
+      args: [bondId],
+      account: fixture.hunter.account,
+    });
+    await fixture.publicClient.waitForTransactionReceipt({ hash: flagHash });
+
+    await fixture.outsider.walletClient.writeContract({
+      address: fixture.tokenAddress,
+      abi: fixture.tokenArtifact.abi,
+      functionName: "transfer",
+      args: [fixture.creator.account.address, BREACH_TRANSFER_AMOUNT],
+      account: fixture.outsider.account,
+    });
+
     await fixture.provider.request({ method: "evm_increaseTime", params: [13 * 60] });
     await fixture.provider.request({ method: "evm_mine", params: [] });
 
@@ -246,6 +345,19 @@ test("refundAfterExpiry reverts when the creator is still below floor after the 
         functionName: "refundAfterExpiry",
         args: [bondId],
         account: fixture.creator.account,
+      }),
+    );
+  } finally {
+    await fixture.close();
+  }
+});
+
+test("createBond reverts when the bond amount is below the minimum", async () => {
+  const fixture = await createFixture();
+  try {
+    await assert.rejects(
+      createBond(fixture, {
+        bondAmount: parseEther("0.001"),
       }),
     );
   } finally {
@@ -309,6 +421,7 @@ async function createBond(fixture, options = {}) {
   const block = await fixture.publicClient.getBlock();
   const launchTimestamp = Number(block.timestamp);
   const expiresInSeconds = options.expiresInSeconds ?? 3600;
+  const bondAmount = options.bondAmount ?? parseEther("1");
   const hash = await fixture.creator.walletClient.writeContract({
     address: fixture.vaultAddress,
     abi: fixture.vaultArtifact.abi,
@@ -319,11 +432,11 @@ async function createBond(fixture, options = {}) {
       BigInt(launchTimestamp),
       [fixture.creator.account.address],
       FLOOR,
-      keccak256(stringToHex("I will hold at least 1.05M tokens.")),
+      "I will hold at least 1.05M tokens.",
       keccak256(stringToHex("CREATOR_WALLET_FLOOR")),
       BigInt(launchTimestamp + expiresInSeconds),
     ],
-    value: parseEther("1"),
+    value: bondAmount,
     account: fixture.creator.account,
   });
   const receipt = await fixture.publicClient.waitForTransactionReceipt({ hash });

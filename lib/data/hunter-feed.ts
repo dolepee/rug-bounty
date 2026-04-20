@@ -21,7 +21,7 @@ export async function readHunterFeed(): Promise<PublicHunterFeedEntry[]> {
       }
       seen.add(entry.id);
       return true;
-    });
+    }).sort((left, right) => new Date(right.createdAtIso).getTime() - new Date(left.createdAtIso).getTime());
   } catch {
     return showcaseEntries;
   }

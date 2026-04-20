@@ -2,6 +2,10 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getBondForPage, showcaseProof } from "@/lib/data/showcase";
 import { bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
+import { CopyButton } from "@/app/components/copy-button";
+
+const cleanEnv = (value?: string | null) => value?.trim() || undefined;
+const appUrl = cleanEnv(process.env.NEXT_PUBLIC_APP_URL) || "https://rug-bounty.vercel.app";
 
 export default async function CertificatePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -9,6 +13,8 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
   if (!bond) notFound();
   const bondAmountLabel = Number(bond.bondAmountBnb).toFixed(4);
   const shareCardUrl = `/api/certificate/render?id=${encodeURIComponent(id)}`;
+  const absoluteCertificateUrl = `${appUrl}/certificate/${encodeURIComponent(id)}`;
+  const absoluteShareCardUrl = `${appUrl}${shareCardUrl}`;
 
   return (
     <section className="section-shell py-12">
@@ -76,6 +82,23 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
               <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
                 <div className="font-mono text-xs uppercase tracking-[0.2em] text-amber-200">Campaign mode</div>
                 <div className="mt-3 text-sm text-amber-100">Pay me if I rug.</div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <CopyButton
+                    text={absoluteCertificateUrl}
+                    label="Copy certificate link"
+                    className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-100 transition hover:border-amber-400/40 hover:bg-amber-500/15"
+                  />
+                  <CopyButton
+                    text={absoluteShareCardUrl}
+                    label="Copy share card URL"
+                    className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-100 transition hover:border-amber-400/40 hover:bg-amber-500/15"
+                  />
+                  <CopyButton
+                    text={`Pay me if I rug. ${absoluteCertificateUrl}`}
+                    label="Copy campaign line"
+                    className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-100 transition hover:border-amber-400/40 hover:bg-amber-500/15"
+                  />
+                </div>
               </div>
             </div>
           </div>

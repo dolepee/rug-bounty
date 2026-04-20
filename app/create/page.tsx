@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { decodeEventLog, formatEther, getAddress, isAddress, keccak256, parseEther, stringToHex, type Address, type Hex } from "viem";
+import { useEffect, useMemo, useState } from "react";
+import { decodeEventLog, formatEther, formatUnits, getAddress, isAddress, keccak256, parseEther, stringToHex, type Address, type Hex } from "viem";
 import { connectInjectedWallet, getBrowserBscPublicClient } from "@/lib/chain/browser-wallet";
+import { erc20MetadataAbi } from "@/lib/chain/erc20";
 import { rugBountyVaultAbi } from "@/lib/chain/rug-bounty";
+import { CopyButton } from "@/app/components/copy-button";
 
 type PromiseItem = {
   text: string;
@@ -43,8 +45,9 @@ type ParsedLaunchEvidence = {
 
 const cleanEnv = (value?: string | null) => value?.trim() || undefined;
 const vaultAddress = cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) as Address | undefined;
+const appUrl = cleanEnv(process.env.NEXT_PUBLIC_APP_URL) || "https://rug-bounty.vercel.app";
 
-const initialText = `I will hold at least 1.05M BIBI tokens for 3 hours.\nBinance listing soon.\nDaily updates.`;
+const initialText = `I will hold at least 1.02M PATCH tokens for 15 minutes.\nBinance listing soon.\nDaily updates.`;
 const initialManualLaunch = {
   token: "",
   creator: "",
@@ -53,6 +56,27 @@ const initialManualLaunch = {
   launchTime: "",
   tokenDecimals: "18",
 };
+const minFloorBps = 10n;
+
+type LaunchChecks = {
+  creatorBalance: bigint;
+  totalSupply: bigint;
+  minBondableFloor: bigint;
+  recommendedFloor: bigint | null;
+};
+
+function formatDurationLabel(seconds: number) {
+  if (seconds % 86400 === 0) return `${seconds / 86400}d`;
+  if (seconds % 3600 === 0) return `${seconds / 3600}h`;
+  if (seconds % 60 === 0) return `${seconds / 60}m`;
+  return `${seconds}s`;
+}
+
+function formatTokenUnits(value: bigint, decimals: number, maximumFractionDigits = 6) {
+  const [whole, fraction = ""] = formatUnits(value, decimals).split(".");
+  const trimmedFraction = fraction.slice(0, maximumFractionDigits).replace(/0+$/, "");
+  return trimmedFraction ? `${whole}.${trimmedFraction}` : whole;
+}
 
 export default function CreateBondPage() {
   const [oathText, setOathText] = useState(initialText);
@@ -67,6 +91,8 @@ export default function CreateBondPage() {
   const [parserError, setParserError] = useState<string | null>(null);
   const [manualLaunchInput, setManualLaunchInput] = useState(initialManualLaunch);
   const [useManualLaunch, setUseManualLaunch] = useState(false);
+  const [launchChecks, setLaunchChecks] = useState<LaunchChecks | null>(null);
+  const [launchChecksError, setLaunchChecksError] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<Address | null>(null);
   const [txHash, setTxHash] = useState<Hex | null>(null);
   const [createdBondId, setCreatedBondId] = useState<string | null>(null);
@@ -159,6 +185,107 @@ export default function CreateBondPage() {
       rejected: items.filter((item) => item.class === "not_enforceable"),
     };
   }, [compiled]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLaunchChecks() {
+      if (!launchEvidence) {
+        setLaunchChecks(null);
+        setLaunchChecksError(null);
+        return;
+      }
+
+      try {
+        const publicClient = getBrowserBscPublicClient();
+        const [creatorBalance, totalSupply] = await Promise.all([
+          publicClient.readContract({
+            address: launchEvidence.token,
+            abi: erc20MetadataAbi,
+            functionName: "balanceOf",
+            args: [launchEvidence.creator],
+          }),
+          publicClient.readContract({
+            address: launchEvidence.token,
+            abi: erc20MetadataAbi,
+            functionName: "totalSupply",
+          }),
+        ]);
+
+        if (cancelled) return;
+
+        const minBondableFloor = (totalSupply * minFloorBps) / 10_000n;
+        const recommendedFloor =
+          creatorBalance > minBondableFloor
+            ? ((creatorBalance * 9n) / 10n > minBondableFloor ? (creatorBalance * 9n) / 10n : minBondableFloor)
+            : null;
+
+        setLaunchChecks({
+          creatorBalance,
+          totalSupply,
+          minBondableFloor,
+          recommendedFloor,
+        });
+        setLaunchChecksError(null);
+      } catch (error) {
+        if (cancelled) return;
+        setLaunchChecks(null);
+        setLaunchChecksError(error instanceof Error ? error.message : "Unable to read creator balance and total supply.");
+      }
+    }
+
+    void loadLaunchChecks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [launchEvidence]);
+
+  const compiledFloorRaw = compiled?.rule ? BigInt(compiled.rule.declaredRetainedBalance) : null;
+
+  const launchGuidance = (() => {
+    if (!launchEvidence || !launchChecks) {
+      return null;
+    }
+
+    const warnings: string[] = [];
+    if (compiledFloorRaw !== null) {
+      if (compiledFloorRaw < launchChecks.minBondableFloor) {
+        warnings.push(`Compiled floor is below the vault minimum of ${formatTokenUnits(launchChecks.minBondableFloor, launchEvidence.tokenDecimals)} ${launchEvidence.symbol}. createBond will revert.`);
+      }
+      if (compiledFloorRaw > launchChecks.creatorBalance) {
+        warnings.push(`Compiled floor is above the creator wallet balance of ${formatTokenUnits(launchChecks.creatorBalance, launchEvidence.tokenDecimals)} ${launchEvidence.symbol}. createBond will revert.`);
+      }
+      if (compiledFloorRaw <= launchChecks.creatorBalance) {
+        const breachRoom = launchChecks.creatorBalance - compiledFloorRaw;
+        if (breachRoom === 0n) {
+          warnings.push("Compiled floor leaves zero breach room. The demo cannot cleanly prove a slash without buying more tokens first.");
+        }
+      }
+    }
+
+    return {
+      warnings,
+      creatorBalanceLabel: `${formatTokenUnits(launchChecks.creatorBalance, launchEvidence.tokenDecimals)} ${launchEvidence.symbol}`,
+      minBondableFloorLabel: `${formatTokenUnits(launchChecks.minBondableFloor, launchEvidence.tokenDecimals)} ${launchEvidence.symbol}`,
+      recommendedFloorLabel: launchChecks.recommendedFloor
+        ? `${formatTokenUnits(launchChecks.recommendedFloor, launchEvidence.tokenDecimals)} ${launchEvidence.symbol}`
+        : null,
+      suggestedFirstLine: launchChecks.recommendedFloor
+        ? `I will hold at least ${formatTokenUnits(launchChecks.recommendedFloor, launchEvidence.tokenDecimals)} ${launchEvidence.symbol} tokens for ${compiled?.rule ? formatDurationLabel(compiled.rule.expiresInSeconds) : "15m"}.`
+        : null,
+    };
+  })();
+
+  function applySuggestedFloor() {
+    if (!launchGuidance?.suggestedFirstLine) {
+      return;
+    }
+
+    const lines = oathText.split("\n");
+    const next = [launchGuidance.suggestedFirstLine, ...lines.slice(1)].join("\n");
+    setOathText(next);
+  }
 
   async function connectWallet() {
     const { address } = await connectInjectedWallet();
@@ -379,10 +506,42 @@ export default function CreateBondPage() {
                   <EvidenceRow label="Name" value={launchEvidence.name} />
                   <EvidenceRow label="Symbol" value={launchEvidence.symbol} />
                   <EvidenceRow label="Launch time" value={new Date(Number(launchEvidence.launchTime) * 1000).toLocaleString()} />
+                  <EvidenceRow label="Total supply" value={launchChecks ? formatTokenUnits(launchChecks.totalSupply, launchEvidence.tokenDecimals) : "Loading…"} />
                   <EvidenceRow label="Decimals" value={String(launchEvidence.tokenDecimals)} />
                   <EvidenceRow label="Launch fee" value={`${formatEther(BigInt(launchEvidence.launchFee))} BNB`} />
                   <EvidenceRow label="Tx hash" value={launchEvidence.txHash} mono />
                 </div>
+              </div>
+            ) : null}
+
+            {launchEvidence ? (
+              <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Launch checks</div>
+                  {launchGuidance?.suggestedFirstLine ? (
+                    <button className="text-xs font-medium text-amber-300 hover:text-amber-200" type="button" onClick={applySuggestedFloor}>
+                      Use recommended floor
+                    </button>
+                  ) : null}
+                </div>
+                {launchChecksError ? <div className="mt-3 text-sm text-red-300">{launchChecksError}</div> : null}
+                {launchGuidance ? (
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <EvidenceRow label="Creator token balance" value={launchGuidance.creatorBalanceLabel} />
+                    <EvidenceRow label="Minimum bondable floor" value={launchGuidance.minBondableFloorLabel} />
+                    <EvidenceRow label="Recommended safe floor" value={launchGuidance.recommendedFloorLabel ?? "Buy more tokens first"} />
+                    <EvidenceRow label="Suggested first line" value={launchGuidance.suggestedFirstLine ?? "No safe floor yet"} />
+                  </div>
+                ) : null}
+                {launchGuidance?.warnings.length ? (
+                  <div className="mt-4 space-y-2">
+                    {launchGuidance.warnings.map((warning) => (
+                      <div key={warning} className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">
+                        {warning}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -440,6 +599,21 @@ export default function CreateBondPage() {
                     <a href={`/bond/${createdBondId}?bondTxHash=${txHash}`} className="ml-3 text-emerald-50 underline underline-offset-4">
                       Open live bond page
                     </a>
+                    <a href={`/certificate/${createdBondId}`} className="ml-3 text-emerald-50 underline underline-offset-4">
+                      Open certificate
+                    </a>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <CopyButton
+                        text={`${appUrl}/bond/${createdBondId}?bondTxHash=${txHash}`}
+                        label="Copy bond link"
+                        className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-50 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
+                      />
+                      <CopyButton
+                        text={`${appUrl}/certificate/${createdBondId}`}
+                        label="Copy certificate link"
+                        className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-50 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
+                      />
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -474,7 +648,7 @@ export default function CreateBondPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-zinc-500">Expires in</span>
-                  <span>{Math.floor(compiled.rule.expiresInSeconds / 3600)}h</span>
+                  <span>{formatDurationLabel(compiled.rule.expiresInSeconds)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-zinc-500">Vault address</span>

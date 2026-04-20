@@ -10,6 +10,7 @@ const vaultAddress = process.env.RUG_BOUNTY_VAULT_ADDRESS || process.env.NEXT_PU
 const startBlock = process.env.RUG_BOUNTY_START_BLOCK;
 const pollMs = Number(process.env.RUG_HUNTER_POLL_MS || 15000);
 const feedPath = (process.env.RUG_HUNTER_FEED_PATH || path.join(process.cwd(), "agent", "feed.json")).trim();
+const statusPath = (process.env.RUG_HUNTER_STATUS_PATH || path.join(process.cwd(), "agent", "status.json")).trim();
 const postExpirySlashWindowSeconds = Number(process.env.RUG_HUNTER_POST_EXPIRY_SLASH_WINDOW_SECONDS || 600);
 const fallbackRpcs = [
   primaryRpc,
@@ -113,6 +114,15 @@ async function recordFeedEntry(entry) {
   }
 }
 
+async function writeStatusSnapshot(snapshot) {
+  try {
+    await mkdir(path.dirname(statusPath), { recursive: true });
+    await writeFile(statusPath, JSON.stringify(snapshot, null, 2));
+  } catch (error) {
+    console.error("[rug-hunter] status-write failed", error);
+  }
+}
+
 async function main() {
   if (!privateKey) {
     throw new Error("Missing PRIVATE_KEY. Fund the generated agent wallet and set it before starting the Rug Hunter.");
@@ -141,6 +151,8 @@ async function main() {
   const chainId = await client.getChainId();
   const normalizedVaultAddress = getAddress(vaultAddress);
   const activeBondIds = new Set();
+  let lastResolvedBondId = null;
+  let lastResolvedTxHash = null;
 
   console.log(`[rug-hunter] connected to chain ${chainId}`);
   console.log(`[rug-hunter] wallet ${account.address}`);
@@ -220,6 +232,8 @@ async function main() {
       label: `bond #${bondId} slashed to Rug Hunter Agent`,
       txHash: hash,
     });
+    lastResolvedBondId = bondId;
+    lastResolvedTxHash = hash;
     activeBondIds.delete(bondId);
   }
 
@@ -232,6 +246,16 @@ async function main() {
         console.error(`[rug-hunter] bond ${bondId} failed`, error);
       }
     }
+    await writeStatusSnapshot({
+      runtime: "vps-pm2",
+      status: "online",
+      vaultAddress: normalizedVaultAddress,
+      walletAddress: account.address,
+      lastTickIso: new Date().toISOString(),
+      watchedBondIds: Array.from(activeBondIds),
+      lastResolvedBondId,
+      lastResolvedTxHash,
+    });
   }
 
   await tick();

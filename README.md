@@ -61,10 +61,13 @@ Implemented:
 - Four.Meme TokenManager2 launch parsing
 - DGrid-backed oath classification / compilation with deterministic fallback
 - browser-wallet `createBond` flow on `/create`
+- creator-balance / minimum-floor / recommended-floor guidance on `/create`
+- minute-based oath durations for faster refund-path demos
 - manual `resolveBond` and `refundAfterExpiry` actions on the live bond page
 - live bond detail / certificate / broken-oaths proof surfaces
 - real certificate share-card render route at `/api/certificate/render`
 - public APIs aligned to the live showcase proof instead of mock rows
+- public hunter status route at `/api/hunter/status`
 - Rug Hunter Agent watcher and slash path
 - PM2 runtime config for persistent hunter deployment
 - minimal HTTP skill wrapper under `skills/rugbounty` and `/api/skill/*`

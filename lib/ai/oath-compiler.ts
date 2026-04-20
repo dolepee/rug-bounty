@@ -16,11 +16,20 @@ function parseHumanTokenAmount(input: string, decimals: number): bigint | null {
 }
 
 function parseDurationSeconds(input: string): number | null {
+  const minutes = input.match(/(\d+)\s*m(?:in(?:ute)?s?)?/i);
+  if (minutes) return Number(minutes[1]) * 60;
   const hours = input.match(/(\d+)\s*h(?:ours?)?/i);
   if (hours) return Number(hours[1]) * 3600;
   const days = input.match(/(\d+)\s*d(?:ays?)?/i);
   if (days) return Number(days[1]) * 86400;
   return null;
+}
+
+function formatDuration(seconds: number) {
+  if (seconds % 86400 === 0) return `${seconds / 86400}d`;
+  if (seconds % 3600 === 0) return `${seconds / 3600}h`;
+  if (seconds % 60 === 0) return `${seconds / 60}m`;
+  return `${seconds}s`;
 }
 
 export type CompiledOath = {
@@ -58,7 +67,7 @@ export async function compileOath(input: string, decimals = 18): Promise<Compile
     classified,
     enforceableCount: enforceable.length,
     humanSummary: rule
-      ? `Creator wallet balance must stay at or above ${rule.declaredRetainedBalance} raw units for ${Math.floor(rule.expiresInSeconds / 3600)}h.`
+      ? `Creator wallet balance must stay at or above ${rule.declaredRetainedBalance} raw units for ${formatDuration(rule.expiresInSeconds)}.`
       : "No enforceable bonded rule could be compiled from the current oath text.",
     rule,
   };

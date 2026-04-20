@@ -1,0 +1,10 @@
+{
+  "runtime": "vps-pm2",
+  "status": "online",
+  "vaultAddress": "0xd8654b6b4f0fc382f36341ac7fd6c70466950fd5",
+  "walletAddress": "0xCCDFe5Df92b31FCD6D28E871CD1446ded1CAA5a8",
+  "lastTickIso": "2026-04-20T12:42:04.783Z",
+  "watchedBondIds": [],
+  "lastResolvedBondId": "0",
+  "lastResolvedTxHash": "0x7ce760c03a4d7a0c4c9ce015402572f13410f8b1b747b57f53142a78910a6534"
+}

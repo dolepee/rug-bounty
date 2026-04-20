@@ -12,6 +12,17 @@ export const showcaseProof = {
   slashedAtIso: "2026-04-20T12:04:55.000Z",
 };
 
+export const archivedProof = {
+  bondId: "archived-bibi",
+  launchTxHash: "0x5807db9c9364698bbc733511711993dfb157fa5b7e8bfaa171aceb315f72b77a" as Hex,
+  bondTxHash: "0xad162b3bd5458ee8fb7f80f1b116fbb5b7d968e4bd5ebaaeda10711bb8168b7b" as Hex,
+  slashTxHash: "0x330410878d8a8df262885f4c8ee5b4c2caf3dbc30a42e2ee39c1eec48f2e5691" as Hex,
+  originalBondAmountBnb: "0.002",
+  launchedAtIso: "2026-04-19T17:59:18.000Z",
+  bondedAtIso: "2026-04-19T18:59:18.000Z",
+  slashedAtIso: "2026-04-19T19:04:55.000Z",
+};
+
 export type ShowcaseBond = LiveBondRecord & {
   bondTxHash?: string;
   slashTxHash?: string;
@@ -42,6 +53,24 @@ const staticShowcaseBond: ShowcaseBond = {
   slashTxHash: showcaseProof.slashTxHash,
 };
 
+const archivedShowcaseBond: ShowcaseBond = {
+  id: archivedProof.bondId,
+  tokenName: "Bonded Bibi",
+  ticker: "$BIBI",
+  tokenAddress: "0x3fc3A064a3Ac78544f642592fDeE208C5be94444" as Address,
+  creator: "0xfB09b732f1A4100A9Dc661Efbc95431B9E2E1810" as Address,
+  declaredCreatorWallets: ["0xfB09b732f1A4100A9Dc661Efbc95431B9E2E1810" as Address],
+  bondAmountBnb: archivedProof.originalBondAmountBnb,
+  declaredFloor: "1050000",
+  currentBalance: "1026124.687221308",
+  status: "SLASHED",
+  expiresAtIso: "2026-04-19T20:59:18.000Z",
+  launchTxHash: archivedProof.launchTxHash,
+  notes: "Archived first-pass mainnet proof from the legacy vault. Kept in the directory as real history, not the active audited showcase.",
+  bondTxHash: archivedProof.bondTxHash,
+  slashTxHash: archivedProof.slashTxHash,
+};
+
 export async function getPrimaryShowcaseBond(): Promise<ShowcaseBond | null> {
   const live = await getLiveBondById(showcaseProof.bondId);
   if (!live) {
@@ -58,18 +87,20 @@ export async function getPrimaryShowcaseBond(): Promise<ShowcaseBond | null> {
 
 export async function getDirectoryBonds(): Promise<ShowcaseBond[]> {
   const live = await getPrimaryShowcaseBond();
-  return live ? [live] : [staticShowcaseBond];
+  return live ? [live, archivedShowcaseBond] : [staticShowcaseBond, archivedShowcaseBond];
 }
 
 export async function getBrokenOathBonds(): Promise<ShowcaseBond[]> {
   const live = await getPrimaryShowcaseBond();
-  return live?.status === "SLASHED" ? [live] : [staticShowcaseBond];
+  return live?.status === "SLASHED" ? [live, archivedShowcaseBond] : [staticShowcaseBond, archivedShowcaseBond];
 }
 
 export async function getBondForPage(id: string): Promise<ShowcaseBond | undefined> {
   const live = await getLiveBondById(id);
   if (!live) {
-    return id === showcaseProof.bondId ? staticShowcaseBond : undefined;
+    if (id === showcaseProof.bondId) return staticShowcaseBond;
+    if (id === archivedProof.bondId) return archivedShowcaseBond;
+    return undefined;
   }
 
   if (id === showcaseProof.bondId) {

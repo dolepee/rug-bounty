@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ShieldAlert, Sparkles, SearchCheck, Bot, ScrollText } from "lucide-react";
 import { getDirectoryBonds, getPrimaryShowcaseBond, showcaseProof } from "@/lib/data/showcase";
+import { getHunterRuntimeStatus } from "@/lib/data/hunter-status";
 import { bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 
 const proofModel = [
@@ -12,6 +13,7 @@ const proofModel = [
 export default async function HomePage() {
   const bonds = await getDirectoryBonds();
   const showcase = await getPrimaryShowcaseBond();
+  const hunterStatus = await getHunterRuntimeStatus();
 
   return (
     <div className="pb-24">
@@ -109,6 +111,55 @@ export default async function HomePage() {
           <div className="surface-strong rounded-2xl p-5">
             <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Agent mode</div>
             <div className="mt-3 text-lg font-semibold">Trigger only, not oracle</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section-shell mt-8">
+        <div className="surface rounded-3xl p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Hunter runtime</div>
+              <h2 className="mt-2 text-2xl font-semibold text-zinc-50">Rug Hunter is deployed on VPS and managed by PM2.</h2>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">
+                The public proof page is not pretending the agent is magic. This runtime watches the vault, submits slash transactions, and records the latest observed bond events.
+              </p>
+            </div>
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${
+              hunterStatus.status === "online"
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                : hunterStatus.status === "stale"
+                  ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
+                  : "border-zinc-700 bg-zinc-900/70 text-zinc-300"
+            }`}>
+              Runtime: {hunterStatus.runtime.toUpperCase()} · {hunterStatus.status.toUpperCase()}
+            </div>
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+              <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Last event</div>
+              <div className="mt-2 text-sm text-zinc-100">{hunterStatus.lastEventLabel ?? "No public hunter events yet."}</div>
+              <div className="mt-2 text-sm text-zinc-400">
+                {hunterStatus.lastEventAtIso ? new Date(hunterStatus.lastEventAtIso).toLocaleString() : "Awaiting first watched bond"}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+              <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Last resolved bond</div>
+              <div className="mt-2 text-lg font-semibold text-zinc-50">
+                {hunterStatus.lastResolvedBondId ? `#${hunterStatus.lastResolvedBondId}` : "None yet"}
+              </div>
+              <div className="mt-2 text-sm text-zinc-400">Same runtime that captured the live PATCH slash.</div>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+              <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Proof link</div>
+              {hunterStatus.lastResolvedTxHash ? (
+                <a className="mt-2 inline-flex text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(hunterStatus.lastResolvedTxHash)} target="_blank" rel="noreferrer">
+                  Open latest hunter tx
+                </a>
+              ) : (
+                <div className="mt-2 text-sm text-zinc-400">No onchain hunter transaction recorded yet.</div>
+              )}
+            </div>
           </div>
         </div>
       </section>

@@ -16,11 +16,13 @@ function parseHumanTokenAmount(input: string, decimals: number): bigint | null {
 }
 
 function parseDurationSeconds(input: string): number | null {
-  const minutes = input.match(/(\d+)\s*m(?:in(?:ute)?s?)?/i);
-  if (minutes) return Number(minutes[1]) * 60;
-  const hours = input.match(/(\d+)\s*h(?:ours?)?/i);
+  const minuteWords = input.match(/(\d+)\s*(?:min(?:ute)?s?)\b/i);
+  if (minuteWords) return Number(minuteWords[1]) * 60;
+  const minuteShorthand = input.match(/(\d+)\s*m\b/);
+  if (minuteShorthand) return Number(minuteShorthand[1]) * 60;
+  const hours = input.match(/(\d+)\s*h(?:ours?)?\b/i);
   if (hours) return Number(hours[1]) * 3600;
-  const days = input.match(/(\d+)\s*d(?:ays?)?/i);
+  const days = input.match(/(\d+)\s*d(?:ays?)?\b/i);
   if (days) return Number(days[1]) * 86400;
   return null;
 }

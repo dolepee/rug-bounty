@@ -154,6 +154,14 @@ async function main() {
   let lastResolvedBondId = null;
   let lastResolvedTxHash = null;
 
+  try {
+    const priorStatus = JSON.parse(await readFile(statusPath, "utf8"));
+    lastResolvedBondId = priorStatus.lastResolvedBondId ?? null;
+    lastResolvedTxHash = priorStatus.lastResolvedTxHash ?? null;
+  } catch {
+    // no prior status snapshot yet
+  }
+
   console.log(`[rug-hunter] connected to chain ${chainId}`);
   console.log(`[rug-hunter] wallet ${account.address}`);
   console.log(`[rug-hunter] vault ${normalizedVaultAddress}`);

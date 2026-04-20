@@ -63,8 +63,19 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
         ? "stale"
         : "unknown";
 
-  const resolvedEntry = entries.find((entry) => entry.id.startsWith("slashed-")) ?? null;
-  const resolvedBondId = resolvedEntry?.id.split("slashed-")[1] ?? null;
+  const resolvedEntry =
+    entries.find((entry) => entry.id.startsWith("live-slash-bond-")) ??
+    entries.find((entry) => entry.id.startsWith("slashed-")) ??
+    entries.find((entry) => entry.label.toLowerCase().includes("slashed")) ??
+    null;
+
+  const resolvedBondId = resolvedEntry
+    ? resolvedEntry.id.startsWith("live-slash-bond-")
+      ? resolvedEntry.id.split("live-slash-bond-")[1] ?? null
+      : resolvedEntry.id.startsWith("slashed-")
+        ? resolvedEntry.id.split("slashed-")[1] ?? null
+        : null
+    : null;
 
   return {
     runtime: "vps-pm2",

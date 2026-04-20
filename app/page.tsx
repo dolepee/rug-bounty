@@ -226,7 +226,7 @@ export default async function HomePage() {
               <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Proof link</div>
               {hunterStatus.lastResolvedTxHash ? (
                 <a className="mt-2 inline-flex text-sm text-amber-300 hover:text-amber-200" href={bscScanTxUrl(hunterStatus.lastResolvedTxHash)} target="_blank" rel="noreferrer">
-                  Open latest hunter tx
+                  Open latest public slash tx
                 </a>
               ) : (
                 <div className="mt-2 text-sm text-zinc-400">No onchain hunter transaction recorded yet.</div>

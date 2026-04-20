@@ -8,6 +8,10 @@ export function getHunterFeedPath() {
   return (process.env.RUG_HUNTER_FEED_PATH || DEFAULT_FEED_PATH).trim();
 }
 
+function sortFeedEntries(entries: PublicHunterFeedEntry[]) {
+  return [...entries].sort((left, right) => new Date(right.createdAtIso).getTime() - new Date(left.createdAtIso).getTime());
+}
+
 export async function readHunterFeed(): Promise<PublicHunterFeedEntry[]> {
   const showcaseEntries = await getPublicHunterFeed();
   try {
@@ -15,14 +19,16 @@ export async function readHunterFeed(): Promise<PublicHunterFeedEntry[]> {
     const parsed = JSON.parse(raw) as PublicHunterFeedEntry[];
     const merged = [...parsed, ...showcaseEntries];
     const seen = new Set<string>();
-    return merged.filter((entry) => {
-      if (seen.has(entry.id)) {
-        return false;
-      }
-      seen.add(entry.id);
-      return true;
-    }).sort((left, right) => new Date(right.createdAtIso).getTime() - new Date(left.createdAtIso).getTime());
+    return sortFeedEntries(
+      merged.filter((entry) => {
+        if (seen.has(entry.id)) {
+          return false;
+        }
+        seen.add(entry.id);
+        return true;
+      }),
+    );
   } catch {
-    return showcaseEntries;
+    return sortFeedEntries(showcaseEntries);
   }
 }

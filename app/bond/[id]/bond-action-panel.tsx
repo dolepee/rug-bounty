@@ -34,6 +34,7 @@ export function BondActionPanel({ bondId, creator, status, expiresAtIso }: BondA
   const refundUnlocked = now >= expiresAtMs + postExpirySlashWindowMs;
   const canTrySlash = !isTerminal && now < expiresAtMs + postExpirySlashWindowMs;
   const canTryRefund = !isTerminal && refundUnlocked;
+  const refundUnlockAtLabel = new Date(expiresAtMs + postExpirySlashWindowMs).toLocaleString();
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -93,6 +94,7 @@ export function BondActionPanel({ bondId, creator, status, expiresAtIso }: BondA
       <div className="mt-4 space-y-3 text-sm text-zinc-400">
         <p>Any non-declared wallet can attempt <code>resolveBond</code>. If the floor is intact, the tx reverts. If the current balance is below the declared floor, the caller takes the bond.</p>
         <p>Only the creator can call <code>refundAfterExpiry</code>, and only after expiry plus the 10 minute post-expiry hunter window while the bond is still above floor.</p>
+        <p>Refund unlock time on this browser clock: <span className="font-mono text-zinc-300">{refundUnlockAtLabel}</span></p>
         <p>
           Current state:
           <span className="ml-2 font-mono text-zinc-300">{status}</span>

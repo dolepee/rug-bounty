@@ -6,6 +6,10 @@ import { showcaseProof } from "@/lib/data/showcase";
 export type HunterRuntimeStatus = {
   runtime: "vps-pm2";
   status: "online" | "stale" | "unknown";
+  vaultAddress: string | null;
+  walletAddress: string | null;
+  lastTickIso: string | null;
+  watchedBondIds: string[];
   lastEventLabel: string | null;
   lastEventAtIso: string | null;
   lastResolvedBondId: string | null;
@@ -21,7 +25,10 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
     const parsed = JSON.parse(raw) as {
       runtime?: "vps-pm2";
       status?: "online" | "stale" | "unknown";
+      vaultAddress?: string | null;
+      walletAddress?: string | null;
       lastTickIso?: string | null;
+      watchedBondIds?: string[] | null;
       lastResolvedBondId?: string | null;
       lastResolvedTxHash?: string | null;
     };
@@ -34,6 +41,10 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
           : parsed.lastTickIso
             ? "stale"
             : parsed.status || "unknown",
+      vaultAddress: parsed.vaultAddress ?? null,
+      walletAddress: parsed.walletAddress ?? null,
+      lastTickIso: parsed.lastTickIso ?? null,
+      watchedBondIds: parsed.watchedBondIds ?? [],
       lastEventLabel: parsed.lastResolvedBondId ? `bond #${parsed.lastResolvedBondId} was last resolved by the hunter` : "hunter heartbeat recorded",
       lastEventAtIso: parsed.lastTickIso ?? null,
       lastResolvedBondId: parsed.lastResolvedBondId ?? null,
@@ -59,6 +70,10 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
   return {
     runtime: "vps-pm2",
     status,
+    vaultAddress: null,
+    walletAddress: null,
+    lastTickIso: null,
+    watchedBondIds: [],
     lastEventLabel: latest?.label ?? null,
     lastEventAtIso: latest?.createdAtIso ?? null,
     lastResolvedBondId: resolvedBondId,

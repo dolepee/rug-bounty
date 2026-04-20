@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getBondForPage } from "@/lib/data/showcase";
 import { bscScanAddressUrl, bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 import { BondActionPanel } from "@/app/bond/[id]/bond-action-panel";
+import { BondTimePanel } from "@/app/bond/[id]/bond-time-panel";
 
 export default async function BondDetailPage({
   params,
@@ -73,11 +74,15 @@ export default async function BondDetailPage({
                   <span>{bond.currentBalance}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Expiry</span>
-                  <span>{new Date(bond.expiresAtIso).toLocaleString()}</span>
+                  <span className="text-zinc-500">Status</span>
+                  <span>{bond.status}</span>
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="mt-4">
+            <BondTimePanel expiresAtIso={bond.expiresAtIso} status={bond.status} />
           </div>
 
           <div className="mt-8 overflow-hidden rounded-2xl border border-white/8 bg-[rgba(17,22,31,0.92)]">

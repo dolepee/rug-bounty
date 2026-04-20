@@ -42,6 +42,9 @@ export default async function HomePage() {
               <Link href="/directory" className="button-secondary rounded-xl px-5 py-3 text-sm">
                 Bonded Launch Directory
               </Link>
+              <Link href="/judge" className="button-secondary rounded-xl px-5 py-3 text-sm">
+                Judge Mode
+              </Link>
             </div>
           </div>
         </div>
@@ -209,7 +212,9 @@ export default async function HomePage() {
               <div className="mt-2 text-lg font-semibold text-zinc-50">
                 {hunterStatus.lastResolvedBondId ? `#${hunterStatus.lastResolvedBondId}` : "None yet"}
               </div>
-              <div className="mt-2 text-sm text-zinc-400">Same runtime that captured the live PATCH slash.</div>
+              <div className="mt-2 text-sm text-zinc-400">
+                {hunterStatus.walletAddress ? `Hunter wallet ${hunterStatus.walletAddress}` : "Hunter wallet not exposed in status snapshot."}
+              </div>
             </div>
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
               <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Proof link</div>
@@ -220,6 +225,26 @@ export default async function HomePage() {
               ) : (
                 <div className="mt-2 text-sm text-zinc-400">No onchain hunter transaction recorded yet.</div>
               )}
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 md:col-span-3">
+              <div className="grid gap-3 text-sm md:grid-cols-3">
+                <div>
+                  <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Watched vault</div>
+                  <div className="mt-2 break-all font-mono text-zinc-300">{hunterStatus.vaultAddress ?? "unknown"}</div>
+                </div>
+                <div>
+                  <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Last heartbeat</div>
+                  <div className="mt-2 text-zinc-300">
+                    {hunterStatus.lastTickIso ? new Date(hunterStatus.lastTickIso).toLocaleString() : "unknown"}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Watched bond ids</div>
+                  <div className="mt-2 font-mono text-zinc-300">
+                    {hunterStatus.watchedBondIds.length ? hunterStatus.watchedBondIds.join(", ") : "none active"}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

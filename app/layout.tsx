@@ -7,6 +7,7 @@ const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 const navLinks = [
   { href: "/", label: "Home" },
+  { href: "/judge", label: "Judge Mode" },
   { href: "/directory", label: "Directory" },
   { href: "/create", label: "Bond Launch" },
   { href: "/broken-oaths", label: "Broken Oaths" },

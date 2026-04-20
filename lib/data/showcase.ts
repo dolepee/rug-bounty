@@ -5,10 +5,12 @@ export const showcaseProof = {
   bondId: "0",
   launchTxHash: "0x9dffb11791807de1d0ef3ebd81a5df68bb6fab9fdaad1118615d42b11ab0c1b9" as Hex,
   bondTxHash: "0x9a124548380e3b37efbe9b6fb6f6b34f4b78c496d1709ad1b3aaf00eda3a09a2" as Hex,
-  slashTxHash: "0x2f97af4957253462db7e33b6b24069da090a63a03b5310fca7b95fe80249b4e2" as Hex,
+  breachFlagTxHash: "0x35eb0ec84eaf121d454a0b68abc7b7994121f466975505c901ec645fb15f762a" as Hex,
+  slashTxHash: "0x6d039369733eaca6d8d9475603449f723c58471577af0efca69565e9e50fed59" as Hex,
   originalBondAmountBnb: "0.003",
   launchedAtIso: "2026-04-20T20:40:14.000Z",
   bondedAtIso: "2026-04-20T20:44:14.000Z",
+  breachFlaggedAtIso: "2026-04-20T20:47:03.000Z",
   slashedAtIso: "2026-04-20T20:47:04.000Z",
 };
 
@@ -60,7 +62,7 @@ const staticShowcaseBond: ShowcaseBond = {
   status: "SLASHED",
   expiresAtIso: "2026-04-20T20:55:14.000Z",
   launchTxHash: showcaseProof.launchTxHash,
-  notes: "Live BNB mainnet bond on the final vault that was launched, bonded, breached, flagged, and slashed by the Rug Hunter Agent.",
+  notes: "Live BNB mainnet bond on the final vault that was launched, bonded, breached, flagged by the Rug Hunter Agent, and ultimately slashed by a third-party hunter in the permissionless race.",
   bondTxHash: showcaseProof.bondTxHash,
   slashTxHash: showcaseProof.slashTxHash,
 };
@@ -151,14 +153,14 @@ export async function getPublicHunterFeed(): Promise<PublicHunterFeedEntry[]> {
       createdAtIso: showcaseProof.bondedAtIso,
     },
     {
-      id: "live-breach-bond-0",
-      label: `floor breach detected for bond #0 (${live.ticker})`,
-      txHash: live.launchTxHash,
-      createdAtIso: showcaseProof.slashedAtIso,
+      id: "live-flag-bond-0",
+      label: `Rug Hunter Agent flagged a floor breach for bond #0 (${live.ticker})`,
+      txHash: showcaseProof.breachFlagTxHash,
+      createdAtIso: showcaseProof.breachFlaggedAtIso,
     },
     {
       id: "live-slash-bond-0",
-      label: "bond #0 slashed to Rug Hunter Agent",
+      label: "bond #0 was slashed by a public hunter after the breach flag",
       txHash: showcaseProof.slashTxHash,
       createdAtIso: showcaseProof.slashedAtIso,
     },

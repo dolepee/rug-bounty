@@ -41,7 +41,7 @@ export default async function BrokenOathsPage() {
             </div>
             <div className="mt-5 rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
               {bond.id === showcaseProof.bondId
-                ? `${bond.ticker} broke its oath on BNB mainnet. The creator launched on Four.Meme, bonded a 1.05M floor, then sold below it. The autonomous Rug Hunter Agent landed the slash tx and took the bond.`
+                ? `${bond.ticker} broke its oath on BNB mainnet. The creator launched on Four.Meme, bonded a 1.05M floor, then sold below it. The Rug Hunter Agent flagged the breach, and a third-party hunter won the permissionless slash race.`
                 : `${bond.ticker} broke its oath. The declared creator wallets fell below the public floor before expiry, and the first hunter to call the vault took the bond.`}
             </div>
             {bond.id === showcaseProof.bondId ? (
@@ -51,6 +51,9 @@ export default async function BrokenOathsPage() {
                 </a>
                 <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.bondTxHash)} target="_blank" rel="noreferrer">
                   BondCreated tx
+                </a>
+                <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.breachFlagTxHash)} target="_blank" rel="noreferrer">
+                  BondBreachFlagged tx
                 </a>
                 <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.slashTxHash)} target="_blank" rel="noreferrer">
                   BondSlashed tx

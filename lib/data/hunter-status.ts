@@ -44,7 +44,7 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
       vaultAddress: parsed.vaultAddress ?? null,
       lastTickIso: parsed.lastTickIso ?? null,
       watchedBondIds: parsed.watchedBondIds ?? [],
-      lastEventLabel: parsed.lastResolvedBondId ? `bond #${parsed.lastResolvedBondId} was last resolved by the hunter` : "hunter heartbeat recorded",
+      lastEventLabel: parsed.lastResolvedBondId ? `bond #${parsed.lastResolvedBondId} was last resolved onchain` : "hunter heartbeat recorded",
       lastEventAtIso: parsed.lastTickIso ?? null,
       lastResolvedBondId: parsed.lastResolvedBondId ?? null,
       lastResolvedTxHash: parsed.lastResolvedTxHash ?? showcaseProof.slashTxHash,

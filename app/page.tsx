@@ -83,7 +83,7 @@ export default async function HomePage() {
                         {showcase.ticker} was launched, bonded, breached, and slashed.
                       </h3>
                       <p className="mt-3 text-sm leading-7 text-zinc-400">
-                        This is the trust rail under failure: a creator launched on Four.Meme, bonded a public floor, broke it, and the autonomous hunter captured the bond onchain.
+                        This is the trust rail under failure: a creator launched on Four.Meme, bonded a public floor, broke it, our hunter flagged the breach, and a public hunter won the permissionless slash onchain.
                       </p>
                     </div>
                     <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -96,6 +96,9 @@ export default async function HomePage() {
                     </a>
                     <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.bondTxHash)} target="_blank" rel="noreferrer">
                       BondCreated tx
+                    </a>
+                    <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.breachFlagTxHash)} target="_blank" rel="noreferrer">
+                      BondBreachFlagged tx
                     </a>
                     <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.slashTxHash)} target="_blank" rel="noreferrer">
                       BondSlashed tx
@@ -189,7 +192,7 @@ export default async function HomePage() {
               <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Hunter runtime</div>
               <h2 className="mt-2 text-2xl font-semibold text-zinc-50">Rug Hunter is deployed on VPS and managed by PM2.</h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">
-                The public proof page is not pretending the agent is magic. This runtime watches the vault, submits slash transactions, and records the latest observed bond events.
+                The public proof page is not pretending the agent is magic. This runtime watches the vault, flags breaches, races slash transactions, and records the latest observed bond events.
               </p>
             </div>
             <div className={`rounded-2xl border px-4 py-3 text-sm ${
@@ -269,7 +272,7 @@ export default async function HomePage() {
               {
                 icon: Bot,
                 title: "Visible agent loop",
-                body: "The Rug Hunter Agent watches floor breaches and lands the slash tx itself. That is actual trigger -> action -> result.",
+                body: "The Rug Hunter Agent watches floor breaches, flags them onchain, and races permissionless slashes. In the final proof, a third-party hunter beat our bot to the bounty, which is the primitive working as designed.",
               },
               {
                 icon: ShieldAlert,

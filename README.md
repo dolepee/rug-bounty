@@ -2,7 +2,7 @@
 
 RugBounty is a bond-backed accountability layer for Four.Meme launches on BNB Chain.
 
-Creators put BNB behind one public promise about their own bag. If their declared creator-wallet balance drops below a public floor before expiry, any hunter can call the vault and take the bond. An autonomous Rug Hunter Agent watches active bonds and submits `resolveBond` when the floor breaks.
+Creators put BNB behind one public promise about their own bag. If their declared creator-wallet balance drops below a public floor before expiry, any hunter can call the vault and take the bond. An autonomous Rug Hunter Agent watches active bonds, flags breaches onchain, and races permissionless slash transactions when the floor breaks.
 
 Formal positioning: `Bonded Launches for Four.Meme`
 
@@ -41,8 +41,10 @@ Slash proof, `FinalSlash / FSLH`:
   `0x9dffb11791807de1d0ef3ebd81a5df68bb6fab9fdaad1118615d42b11ab0c1b9`
 - BondCreated tx:
   `0x9a124548380e3b37efbe9b6fb6f6b34f4b78c496d1709ad1b3aaf00eda3a09a2`
+- BondBreachFlagged tx:
+  `0x35eb0ec84eaf121d454a0b68abc7b7994121f466975505c901ec645fb15f762a`
 - BondSlashed tx:
-  `0x2f97af4957253462db7e33b6b24069da090a63a03b5310fca7b95fe80249b4e2`
+  `0x6d039369733eaca6d8d9475603449f723c58471577af0efca69565e9e50fed59`
 
 Refund proof, `FinalRefund / FRFD`:
 
@@ -54,7 +56,8 @@ Refund proof, `FinalRefund / FRFD`:
   `0x18c2cc2b0205c21dc304ae2872a9bb6ce9b3aad54ecce765d27efe11d331103f`
 
 What happened:
-- the creator launched `FSLH` on Four.Meme, bonded a `1.05M FSLH` retained-balance floor with `0.003 BNB`, then sold below the floor and was slashed by the Rug Hunter Agent on the final vault
+- the creator launched `FSLH` on Four.Meme, bonded a `1.05M FSLH` retained-balance floor with `0.003 BNB`, then sold below the floor
+- the Rug Hunter Agent flagged the breach onchain, and a third-party hunter won the permissionless slash race on the final vault
 - the creator launched `FRFD` on Four.Meme, bonded a `1.05M FRFD` retained-balance floor with `0.005 BNB`, kept the balance above floor through expiry plus the hunter grace window, then claimed the refund on the final vault
 
 Configured vault:
@@ -158,5 +161,5 @@ The bundled manifest is in [skills/rugbounty/manifest.json](/home/qdee/rug-bount
 2. Compile a public promise into one bondable rule
 3. Create the bond from the creator wallet
 4. Breach the retained-balance floor
-5. Let the Rug Hunter Agent call `resolveBond`
+5. Let the hunter path trigger: the Rug Hunter Agent flags the breach and any hunter can win the slash race
 6. Open BscScan proof, the manual action surface, and the certificate share card

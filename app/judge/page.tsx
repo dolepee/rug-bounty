@@ -94,10 +94,10 @@ export default async function JudgeModePage() {
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
             {hunterStatus.lastResolvedTxHash ? (
-              <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(hunterStatus.lastResolvedTxHash)} target="_blank" rel="noreferrer">
-                Latest hunter tx
-              </a>
-            ) : null}
+                <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(hunterStatus.lastResolvedTxHash)} target="_blank" rel="noreferrer">
+                  Latest public slash tx
+                </a>
+              ) : null}
             <a className="button-secondary rounded-xl px-4 py-3 text-sm" href="/api/hunter/status" target="_blank" rel="noreferrer">
               Raw hunter status
             </a>
@@ -119,11 +119,15 @@ export default async function JudgeModePage() {
               <div className="flex justify-between"><span className="text-zinc-500">Token</span><span>{slashProofBond.tokenName}</span></div>
               <div className="flex justify-between"><span className="text-zinc-500">Bond</span><span>{slashProofBond.bondAmountBnb} BNB</span></div>
               <div className="flex justify-between"><span className="text-zinc-500">Floor</span><span>{slashProofBond.declaredFloor}</span></div>
-              <div className="flex justify-between"><span className="text-zinc-500">Outcome</span><span>creator breached floor, hunter slashed</span></div>
+              <div className="flex justify-between"><span className="text-zinc-500">Outcome</span><span>creator breached floor, public hunter slashed</span></div>
             </div>
+            <p className="mt-4 text-sm leading-7 text-zinc-400">
+              Our hunter flagged the live breach onchain, but slash remained permissionless and a third-party hunter won the bounty race. That is the primitive behaving as designed.
+            </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <a className="button-primary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.launchTxHash)} target="_blank" rel="noreferrer">Launch</a>
               <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.bondTxHash)} target="_blank" rel="noreferrer">Bond</a>
+              <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.breachFlagTxHash)} target="_blank" rel="noreferrer">Breach flag</a>
               <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={bscScanTxUrl(showcaseProof.slashTxHash)} target="_blank" rel="noreferrer">Slash</a>
               <a className="button-secondary rounded-xl px-4 py-3 text-sm" href={fourMemeTokenUrl(slashProofBond.tokenAddress)} target="_blank" rel="noreferrer">Four.Meme</a>
               <Link href={`/bond/${slashProofBond.id}?bondTxHash=${showcaseProof.bondTxHash}`} className="button-secondary rounded-xl px-4 py-3 text-sm">Bond page</Link>
@@ -202,7 +206,7 @@ export default async function JudgeModePage() {
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">This does not detect every rug.</div>
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">This does not detect hidden undeclared wallets.</div>
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">The vault records launch metadata for display, but does not verify Four.Meme history onchain.</div>
-            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">Slash is permissionless. The agent is a live hunter, not a privileged oracle.</div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">Slash is permissionless. The agent is a live hunter, not a privileged oracle, and another hunter can beat it to the bounty.</div>
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">During the hackathon demo period, the 20% protocol leg routes to an author-controlled treasury. Production deployments should point it at a burn, DAO, or multisig.</div>
           </div>
         </div>

@@ -400,29 +400,63 @@ export default function CreateBondPage() {
 
   return (
     <section className="section-shell py-12">
-      <div className="mb-8">
-        <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Bond your launch</div>
-        <h1 className="mt-2 text-4xl font-semibold">Compile one public promise into a slashable floor</h1>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-400">
-          The classifier is not decorative. It decides whether a promise can anchor a bond, should stay as social-only, or must be rejected because the vault cannot enforce it.
-        </p>
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="surface-strong rounded-[2rem] p-8">
+          <div className="inline-flex items-center gap-2 rounded-full px-4 py-2 status-chip font-mono text-xs uppercase tracking-[0.24em]">
+            Launch workbench
+          </div>
+          <h1 className="mt-6 font-display text-5xl font-semibold tracking-tight text-zinc-50">
+            Turn a launch promise into an enforceable bond.
+          </h1>
+          <p className="mt-5 max-w-3xl text-base leading-8 text-zinc-300">
+            The classifier is not decorative. It decides whether a promise can anchor a bond, should stay social-only, or must be rejected because the vault cannot enforce it.
+          </p>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <HeroStep label="01 / Parse" body="The official flow only accepts a successful real Four.Meme TokenCreate parse." />
+            <HeroStep label="02 / Compile" body="AI separates enforceable balance-floor promises from hype and social-only claims." />
+            <HeroStep label="03 / Sign" body="Creators sign one bond transaction against the configured vault using the compiled rule." />
+          </div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <div className="rounded-full border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
+              Minimum bond on current vault: {minBondLabel} BNB
+            </div>
+            <div className="rounded-full border border-white/8 bg-white/[0.03] px-4 py-2 text-sm text-zinc-300">
+              Vault: <span className="font-mono text-zinc-100">{vaultAddress || "not configured"}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="surface rounded-[2rem] p-6">
+          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-zinc-500">Flow guardrails</div>
+          <div className="mt-5 grid gap-3">
+            <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-7 text-zinc-300">
+              Bond creation is hard-gated to a real Four.Meme parse. If parsing fails, fix the evidence path. Do not bypass authenticity with manual launch fields.
+            </div>
+            <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-7 text-zinc-300">
+              The creator wallet from the parse must match the connected signer and must appear in the declared creator wallet list.
+            </div>
+            <div className="rounded-[1.4rem] border border-amber-500/20 bg-amber-500/10 p-4 text-sm leading-7 text-amber-100">
+              This does not detect every rug. It enforces one public promise with money attached.
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="surface rounded-3xl p-6">
+      <div className="mt-10 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="surface rounded-[2rem] p-6">
           <div className="grid gap-5">
             <div>
               <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Four.Meme launch tx hash</label>
               <div className="flex gap-3">
                 <input value={launchTxHash} onChange={(event) => handleLaunchTxHashChange(event.target.value)} placeholder="0x..." className="font-mono" />
-                <button className="button-secondary rounded-xl px-4 py-3 text-sm" onClick={parseLaunchTx} type="button">
+                <button className="button-secondary rounded-full px-4 py-3 text-sm" onClick={parseLaunchTx} type="button">
                   Parse
                 </button>
               </div>
               {parserError ? <div className="mt-2 text-sm text-red-300">{parserError}</div> : null}
             </div>
 
-            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+            <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4">
               <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Official bond flow</div>
               <p className="mt-3 text-sm leading-7 text-zinc-400">
                 Bond creation is hard-gated to a successful Four.Meme <span className="font-mono">TokenCreate</span> parse. If parsing fails, the fix is to retry with the real launch tx or repair RPC access, not to bypass launch authenticity with manual token fields.
@@ -430,7 +464,7 @@ export default function CreateBondPage() {
             </div>
 
             {launchEvidence ? (
-              <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+              <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-7 text-zinc-300">
                 <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Parsed launch evidence</div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <EvidenceRow label="Token" value={launchEvidence.token} mono />
@@ -447,11 +481,11 @@ export default function CreateBondPage() {
             ) : null}
 
             {launchEvidence ? (
-              <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+              <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4 text-sm leading-7 text-zinc-300">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Launch checks</div>
                   {launchGuidance?.suggestedFirstLine ? (
-                    <button className="text-xs font-medium text-amber-300 hover:text-amber-200" type="button" onClick={applySuggestedFloor}>
+                    <button className="text-xs font-medium text-[var(--accent-soft)] hover:text-white" type="button" onClick={applySuggestedFloor}>
                       Use recommended floor
                     </button>
                   ) : null}
@@ -468,11 +502,11 @@ export default function CreateBondPage() {
                 {launchGuidance?.warnings.length ? (
                   <div className="mt-4 space-y-2">
                     {launchGuidance.warnings.map((warning) => (
-                      <div key={warning} className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">
+                      <div key={warning} className="rounded-[1.2rem] border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">
                         {warning}
                       </div>
                     ))}
-                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+                    <div className="rounded-[1.2rem] border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-100">
                       Once a floor breach is flagged onchain, refund is permanently locked even if the creator later buys back above floor.
                     </div>
                   </div>
@@ -495,24 +529,24 @@ export default function CreateBondPage() {
               <textarea value={oathText} onChange={(event) => handleOathTextChange(event.target.value)} />
             </div>
 
-            <div className="flex gap-3">
-              <button className="button-primary rounded-xl px-5 py-3 text-sm" onClick={runClassifier} disabled={loading} type="button">
+            <div className="flex flex-wrap gap-3">
+              <button className="button-primary rounded-full px-5 py-3 text-sm" onClick={runClassifier} disabled={loading} type="button">
                 {loading ? "Compiling..." : "Compile Oath"}
               </button>
-              <button className="button-secondary rounded-xl px-5 py-3 text-sm" onClick={connectWallet} type="button">
+              <button className="button-secondary rounded-full px-5 py-3 text-sm" onClick={connectWallet} type="button">
                 {walletAddress ? `Wallet: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "Connect Wallet"}
               </button>
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                This does not detect every rug. It enforces one public promise with money attached.
+              <div className="rounded-full border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                Enforces one promise with money attached.
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm text-zinc-300">
+            <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4 text-sm text-zinc-300">
               During the hackathon demo period, the 20% protocol leg routes to an author-controlled treasury. Production deployments should point it at a burn, DAO, or multisig.
             </div>
 
             {classifierError ? (
-              <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{classifierError}</div>
+              <div className="rounded-[1.5rem] border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{classifierError}</div>
             ) : null}
 
             <div className="grid gap-3 md:grid-cols-[1fr_auto]">
@@ -522,15 +556,20 @@ export default function CreateBondPage() {
                 <div className="mt-2 text-xs text-zinc-500">Minimum bond on the current vault: {minBondLabel} BNB.</div>
               </div>
               <div className="flex items-end">
-                <button className="button-primary rounded-xl px-5 py-3 text-sm" onClick={submitBond} disabled={submitLoading || !compiled?.rule || !launchEvidence} type="button">
+                <button
+                  className="button-primary rounded-full px-5 py-3 text-sm"
+                  onClick={submitBond}
+                  disabled={submitLoading || !compiled?.rule || !launchEvidence}
+                  type="button"
+                >
                   {submitLoading ? "Submitting..." : "Create Bond Onchain"}
                 </button>
               </div>
             </div>
 
-            {submitError ? <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{submitError}</div> : null}
+            {submitError ? <div className="rounded-[1.5rem] border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{submitError}</div> : null}
             {txHash ? (
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+              <div className="rounded-[1.5rem] border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
                 <div className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-300/80">Bond submitted</div>
                 <div className="mt-2 font-mono break-all">{txHash}</div>
                 {createdBondId ? (
@@ -546,12 +585,12 @@ export default function CreateBondPage() {
                       <CopyButton
                         text={`${appUrl}/bond/${createdBondId}?bondTxHash=${txHash}`}
                         label="Copy bond link"
-                        className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-50 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
+                        className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-50 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
                       />
                       <CopyButton
                         text={`${appUrl}/certificate/${createdBondId}`}
                         label="Copy certificate link"
-                        className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-50 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
+                        className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-50 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
                       />
                     </div>
                   </div>
@@ -561,11 +600,11 @@ export default function CreateBondPage() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 xl:sticky xl:top-28">
           <ClassifierCard title="Enforceable" tone="green" items={grouped.enforceable} />
           <ClassifierCard title="Needs social proof" tone="amber" items={grouped.social} />
           <ClassifierCard title="Rejected" tone="red" items={grouped.rejected} />
-          <div className="surface rounded-3xl p-6">
+          <div className="surface rounded-[2rem] p-6">
             <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Compiled rule</div>
             {compiled ? (
               <div className="mt-4 flex justify-between text-sm text-zinc-300">
@@ -602,7 +641,7 @@ export default function CreateBondPage() {
                 {compiled.compileWarnings.length ? (
                   <div className="space-y-2 pt-2">
                     {compiled.compileWarnings.map((warning) => (
-                      <div key={warning} className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+                      <div key={warning} className="rounded-[1.2rem] border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-100">
                         {warning}
                       </div>
                     ))}
@@ -619,9 +658,18 @@ export default function CreateBondPage() {
   );
 }
 
+function HeroStep({ label, body }: { label: string; body: string }) {
+  return (
+    <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4">
+      <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-zinc-500">{label}</div>
+      <div className="mt-2 text-sm leading-7 text-zinc-300">{body}</div>
+    </div>
+  );
+}
+
 function EvidenceRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-black/20 p-3">
+    <div className="rounded-[1.2rem] border border-white/8 bg-black/10 p-3">
       <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500">{label}</div>
       <div className={`mt-2 break-all text-sm text-zinc-200 ${mono ? "font-mono" : ""}`}>{value}</div>
     </div>
@@ -644,14 +692,14 @@ function ClassifierCard({
   }[tone];
 
   return (
-    <div className="surface rounded-3xl p-6">
+    <div className="surface rounded-[2rem] p-6">
       <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">{title}</div>
       <div className="mt-4 space-y-3">
         {items.length === 0 ? (
-          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm text-zinc-500">No items in this bucket yet.</div>
+          <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.02] p-4 text-sm text-zinc-500">No items in this bucket yet.</div>
         ) : (
           items.map((item) => (
-            <div key={item.text} className={`rounded-2xl border p-4 text-sm ${palette}`}>
+            <div key={item.text} className={`rounded-[1.4rem] border p-4 text-sm ${palette}`}>
               <div className="font-medium">{item.text}</div>
               <div className="mt-2 leading-7 opacity-90">{item.reason}</div>
               {item.suggestedRewrite ? <div className="mt-2 font-mono text-xs opacity-80">Rewrite: {item.suggestedRewrite}</div> : null}

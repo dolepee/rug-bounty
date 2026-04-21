@@ -87,6 +87,7 @@ export default async function HomePage() {
               <div className="mt-6 space-y-3">
                 <SystemRow label="Vault source" value="Verified on BscScan" accent="lime" />
                 <SystemRow label="Watcher runtime" value={hunterStatus.lastTickIso ? new Date(hunterStatus.lastTickIso).toLocaleString() : "heartbeat unavailable"} />
+                <SystemRow label="Latest event" value={hunterStatus.lastEventLabel ?? "no public event recorded"} />
                 <SystemRow label="Slash proof" value={showcaseProof.slashTxHash.slice(0, 10) + "…" + showcaseProof.slashTxHash.slice(-6)} mono accent="red" />
                 <SystemRow label="Refund proof" value={refundProof.refundTxHash.slice(0, 10) + "…" + refundProof.refundTxHash.slice(-6)} mono accent="lime" />
               </div>
@@ -384,10 +385,15 @@ function BondCard({
 }) {
   const variant = statusVariant(bond.status);
   const floor = Number(bond.declaredFloor);
-  const balance = Number(bond.currentBalance);
-  const raw = floor > 0 ? (balance / floor) * 100 : 0;
+  const proofBalance = Number(bond.currentBalance);
+  const liveBalance = bond.liveCurrentBalance ? Number(bond.liveCurrentBalance) : null;
+  const raw = floor > 0 ? (proofBalance / floor) * 100 : 0;
   const gaugePct = Math.max(0, Math.min(100, raw));
   const gaugeFill = variant === "refunded" ? "lime" : variant === "slashed" ? "red" : "yellow";
+  const liveContextChanged =
+    typeof liveBalance === "number" &&
+    Number.isFinite(liveBalance) &&
+    Math.abs(liveBalance - proofBalance) > 0.000001;
 
   return (
     <Link
@@ -423,7 +429,7 @@ function BondCard({
 
       <div className="mt-6">
         <div className="flex items-center justify-between">
-          <span className="label-mono">Retained balance</span>
+          <span className="label-mono">Balance at proof</span>
           <span className="font-mono text-xs text-white/80">{formatNumber(bond.currentBalance)}</span>
         </div>
         <div className="floor-gauge mt-2">
@@ -433,6 +439,14 @@ function BondCard({
           <span>0</span>
           <span>{gaugePct.toFixed(1)}% of floor</span>
         </div>
+        {liveContextChanged ? (
+          <div className="mt-3 rounded-2xl border border-white/7 bg-white/[0.02] px-3 py-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="label-mono">Current live balance</span>
+              <span className="font-mono text-xs text-white/80">{formatNumber(String(liveBalance))}</span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2">

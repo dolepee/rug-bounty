@@ -16,8 +16,8 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
   const variant = statusVariant(bond.status);
   const gaugeFill = variant === "refunded" ? "lime" : variant === "slashed" ? "red" : "yellow";
   const floor = Number(bond.declaredFloor);
-  const balance = Number(bond.currentBalance);
-  const raw = floor > 0 ? (balance / floor) * 100 : 0;
+  const proofBalance = Number(bond.currentBalance);
+  const raw = floor > 0 ? (proofBalance / floor) * 100 : 0;
   const gaugePct = Math.max(0, Math.min(100, raw));
   const shareCardUrl = `/api/certificate/render?id=${encodeURIComponent(id)}`;
   const absoluteCertificateUrl = `${appUrl}/certificate/${encodeURIComponent(id)}`;
@@ -62,7 +62,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
                 <MetricTile label="Bond staked" value={`${bondAmountLabel} BNB`} accent="yellow" />
                 <MetricTile label="Expires" value={new Date(bond.expiresAtIso).toLocaleString()} />
                 <MetricTile label="Declared floor" value={bond.declaredFloor} />
-                <MetricTile label="Current balance" value={bond.currentBalance} />
+                <MetricTile label="Balance at proof" value={bond.currentBalance} />
               </div>
             </div>
 
@@ -91,8 +91,13 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <MetricTile label="Declared floor" value={`${formatTokenAmount(bond.declaredFloor)} tokens`} compact />
-                  <MetricTile label="Latest balance" value={formatTokenAmount(bond.currentBalance)} compact />
+                  <MetricTile label="Balance at proof" value={formatTokenAmount(bond.currentBalance)} compact />
                 </div>
+                {bond.liveCurrentBalance && bond.liveCurrentBalance !== bond.currentBalance ? (
+                  <div className="mt-3 text-xs leading-relaxed text-white/58">
+                    Current live balance has changed since this proof was recorded. The receipt preserves the balance that made the slash or refund outcome valid.
+                  </div>
+                ) : null}
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">

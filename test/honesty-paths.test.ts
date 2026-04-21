@@ -163,7 +163,7 @@ test("DGrid classification parser accepts fenced JSON with null suggested rewrit
   assert.equal(result[1]?.suggestedRewrite, undefined);
 });
 
-test("hunter feed stays empty without a real runtime feed file", async () => {
+test("public hunter feed falls back to verified proof history when no runtime feed file exists", async () => {
   const tempDir = path.join(os.tmpdir(), `rug-bounty-feed-empty-${Date.now()}`);
   await mkdir(tempDir, { recursive: true });
   process.env.RUG_HUNTER_FEED_PATH = path.join(tempDir, "feed.json");
@@ -171,14 +171,15 @@ test("hunter feed stays empty without a real runtime feed file", async () => {
   try {
     const feed = getModuleExports<{ readHunterFeed: () => Promise<Array<unknown>> }>(await import("../lib/data/hunter-feed.ts"));
     const entries = await feed.readHunterFeed();
-    assert.deepEqual(entries, []);
+    assert.ok(entries.length >= 3);
+    assert.equal((entries[0] as { source?: string }).source, "verified-proof");
   } finally {
     delete process.env.RUG_HUNTER_FEED_PATH;
     await rm(tempDir, { recursive: true, force: true });
   }
 });
 
-test("hunter runtime status remains unknown without a configured runtime snapshot or feed", async () => {
+test("hunter runtime status remains unknown without a configured runtime snapshot or runtime feed", async () => {
   const tempDir = path.join(os.tmpdir(), `rug-bounty-status-empty-${Date.now()}`);
   await mkdir(tempDir, { recursive: true });
   process.env.RUG_HUNTER_FEED_PATH = path.join(tempDir, "feed.json");
@@ -193,7 +194,7 @@ test("hunter runtime status remains unknown without a configured runtime snapsho
     );
     const status = await statusModule.getHunterRuntimeStatus();
     assert.equal(status.status, "unknown");
-    assert.equal(status.lastResolvedTxHash, null);
+    assert.equal(status.lastResolvedTxHash, "0x6d039369733eaca6d8d9475603449f723c58471577af0efca69565e9e50fed59");
   } finally {
     delete process.env.RUG_HUNTER_FEED_PATH;
     delete process.env.RUG_HUNTER_STATUS_PATH;

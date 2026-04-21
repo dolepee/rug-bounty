@@ -22,7 +22,7 @@ export default async function DirectoryPage() {
               <div className="label-mono">Verified proof directory</div>
               <h1 className="mt-3 hazard-title--sm">Every bond. Every receipt.</h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
-                Each row points at a real Four.Meme launch, a real bond, and a real onchain outcome. Balance and expiry fields refresh from the configured vault.
+                Each row points at a real Four.Meme launch, a real bond, and a real onchain outcome. The directory preserves proof-state values; receipt pages also show current live vault context when it matters.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -85,7 +85,7 @@ export default async function DirectoryPage() {
           />
           <GuideCard
             title="Current vault context"
-            body="Balance and expiry update from the configured vault so proof pages stay legible after settlement."
+            body="Proof rows stay anchored to the historical evidence. Live chain state appears separately inside each receipt so settled bonds do not look misleading."
             dot="yellow"
           />
           <GuideCard

@@ -27,10 +27,15 @@ export default async function BondDetailPage({
 
   const bondAmount = Number(bond.bondAmountBnb).toFixed(4);
   const floor = Number(bond.declaredFloor);
-  const balance = Number(bond.currentBalance);
-  const raw = floor > 0 ? (balance / floor) * 100 : 0;
+  const proofBalance = Number(bond.currentBalance);
+  const liveBalance = bond.liveCurrentBalance ? Number(bond.liveCurrentBalance) : null;
+  const raw = floor > 0 ? (proofBalance / floor) * 100 : 0;
   const gaugePct = Math.max(0, Math.min(100, raw));
   const gaugeFill = variant === "refunded" ? "lime" : variant === "slashed" ? "red" : "yellow";
+  const liveContextChanged =
+    typeof liveBalance === "number" &&
+    Number.isFinite(liveBalance) &&
+    Math.abs(liveBalance - proofBalance) > 0.000001;
 
   return (
     <div>
@@ -75,7 +80,7 @@ export default async function BondDetailPage({
                   <div className="mt-1 font-mono text-sm text-white/90">{formatNumber(bond.declaredFloor)} tokens</div>
                 </div>
                 <div>
-                  <div className="label-mono">Latest balance</div>
+                  <div className="label-mono">Balance at proof</div>
                   <div className="mt-1 font-mono text-sm text-white/90">{formatNumber(bond.currentBalance)}</div>
                 </div>
               </div>
@@ -87,6 +92,14 @@ export default async function BondDetailPage({
                 <div className="floor-gauge mt-2">
                   <div className={`floor-gauge__fill floor-gauge__fill--${gaugeFill}`} style={{ width: `${gaugePct}%` }} />
                 </div>
+                {liveContextChanged ? (
+                  <div className="mt-3 rounded-2xl border border-[var(--border)] bg-white/[0.02] px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="label-mono">Current live balance</span>
+                      <span className="font-mono text-xs text-white/80">{formatNumber(String(liveBalance))}</span>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
 

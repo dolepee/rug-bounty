@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { bscScanAddressUrl, bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 import { getCurrentMainnetProofs, refundProof, showcaseProof } from "@/lib/data/showcase";
+import { readHunterFeed } from "@/lib/data/hunter-feed";
 import { getHunterRuntimeStatus } from "@/lib/data/hunter-status";
 import { getConfiguredVaultAddress } from "@/lib/data/live-bonds";
 
@@ -31,9 +32,11 @@ const limits = [
 export default async function JudgeModePage() {
   const vaultAddress = getConfiguredVaultAddress();
   const hunterStatus = await getHunterRuntimeStatus();
+  const hunterFeed = await readHunterFeed();
   const proofs = await getCurrentMainnetProofs();
   const slashProofBond = proofs.find((bond) => bond.id === showcaseProof.bondId) ?? null;
   const refundBond = proofs.find((bond) => bond.id === refundProof.bondId) ?? null;
+  const recentHunterFeed = hunterFeed.slice(0, 6);
   const watchedLabel = hunterStatus.watchedBondIds.length
     ? hunterStatus.watchedBondIds.join(", ")
     : hunterStatus.status === "online"
@@ -66,6 +69,10 @@ export default async function JudgeModePage() {
                 <Meta
                   label="Last heartbeat"
                   value={hunterStatus.lastTickIso ? new Date(hunterStatus.lastTickIso).toLocaleString() : "unknown"}
+                />
+                <Meta
+                  label="Latest event"
+                  value={hunterStatus.lastEventLabel ?? "no public event recorded"}
                 />
                 <Meta label="Watched bonds" value={watchedLabel} />
               </div>
@@ -101,7 +108,10 @@ export default async function JudgeModePage() {
               metrics={[
                 { label: "Bond", value: `${slashProofBond.bondAmountBnb} BNB` },
                 { label: "Floor", value: slashProofBond.declaredFloor },
-                { label: "Last balance", value: slashProofBond.currentBalance },
+                { label: "Balance at proof", value: slashProofBond.currentBalance },
+                ...(slashProofBond.liveCurrentBalance && slashProofBond.liveCurrentBalance !== slashProofBond.currentBalance
+                  ? [{ label: "Current live balance", value: slashProofBond.liveCurrentBalance }]
+                  : []),
               ]}
               links={[
                 { label: "Launch", href: bscScanTxUrl(showcaseProof.launchTxHash), tone: "muted" },
@@ -123,7 +133,10 @@ export default async function JudgeModePage() {
               metrics={[
                 { label: "Bond", value: `${refundBond.bondAmountBnb} BNB` },
                 { label: "Floor", value: refundBond.declaredFloor },
-                { label: "Last balance", value: refundBond.currentBalance },
+                { label: "Balance at proof", value: refundBond.currentBalance },
+                ...(refundBond.liveCurrentBalance && refundBond.liveCurrentBalance !== refundBond.currentBalance
+                  ? [{ label: "Current live balance", value: refundBond.liveCurrentBalance }]
+                  : []),
               ]}
               links={[
                 { label: "Launch", href: bscScanTxUrl(refundProof.launchTxHash), tone: "muted" },
@@ -133,6 +146,34 @@ export default async function JudgeModePage() {
               ]}
             />
           ) : null}
+        </div>
+      </section>
+
+      <section className="section-shell mt-12">
+        <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="hazard-card p-6">
+            <div className="label-mono">Public hunter timeline</div>
+            <div className="mt-4 space-y-3">
+              {recentHunterFeed.map((entry) => (
+                <TimelineRow
+                  key={entry.id}
+                  label={entry.label}
+                  createdAtIso={entry.createdAtIso}
+                  source={entry.source ?? "runtime"}
+                  tone={entry.tone ?? "muted"}
+                  txHash={entry.txHash}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="hazard-card p-6">
+            <div className="label-mono">How to read it</div>
+            <div className="mt-4 space-y-4">
+              <LongRow label="Runtime entries" body="Produced by the live VPS hunter while it watches or acts on bonds in the current vault." />
+              <LongRow label="Verified proof entries" body="Real historical launch, breach, slash, and refund events curated into the public record so the operating timeline stays inspectable." />
+              <LongRow label="Proof-state vs live-state" body="Exhibit balances show the value at the proof moment. If current chain state drifted later, the live value appears separately." />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -302,7 +343,7 @@ function ExhibitCard({
       </div>
       <p className="mt-3 text-sm leading-relaxed text-white/75">{description}</p>
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
         {metrics.map((m) => (
           <div key={m.label} className="rounded border border-[var(--border)] bg-white/[0.015] p-3">
             <div className="label-mono">{m.label}</div>
@@ -326,6 +367,43 @@ function ExhibitCard({
           </a>
         ))}
       </div>
+    </div>
+  );
+}
+
+function TimelineRow({
+  label,
+  createdAtIso,
+  source,
+  tone,
+  txHash,
+}: {
+  label: string;
+  createdAtIso: string;
+  source: "runtime" | "verified-proof";
+  tone: "yellow" | "lime" | "red" | "muted";
+  txHash?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-white/[0.015] px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className={`live-dot live-dot--${tone}`} />
+          <span className="label-mono">{source === "runtime" ? "runtime" : "verified proof"}</span>
+        </div>
+        <span className="font-mono text-[11px] text-white/60">{new Date(createdAtIso).toLocaleString()}</span>
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-white/82">{label}</p>
+      {txHash ? (
+        <a
+          href={bscScanTxUrl(txHash)}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--fg-muted)] hover:text-white"
+        >
+          {txHash.slice(0, 8)}…{txHash.slice(-6)} <ArrowUpRight className="h-3 w-3" />
+        </a>
+      ) : null}
     </div>
   );
 }

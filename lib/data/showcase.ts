@@ -41,6 +41,9 @@ export type ShowcaseBond = LiveBondRecord & {
   bondTxHash?: string;
   slashTxHash?: string;
   refundTxHash?: string;
+  liveCurrentBalance?: string;
+  liveStatus?: LiveBondRecord["status"];
+  liveExpiresAtIso?: string;
 };
 
 export type PublicHunterFeedEntry = {
@@ -48,6 +51,9 @@ export type PublicHunterFeedEntry = {
   label: string;
   txHash?: string;
   createdAtIso: string;
+  source?: "runtime" | "verified-proof";
+  tone?: "yellow" | "lime" | "red" | "muted";
+  bondId?: string | null;
 };
 
 const staticShowcaseBond: ShowcaseBond = {
@@ -115,14 +121,12 @@ async function overlayCurrentVaultState(fallback: ShowcaseBond): Promise<Showcas
     creator: live.creator,
     tokenAddress: live.tokenAddress,
     declaredCreatorWallets: live.declaredCreatorWallets,
-    declaredFloor: live.declaredFloor,
-    currentBalance: live.currentBalance,
-    status: live.status,
-    expiresAtIso: live.expiresAtIso,
-    launchTxHash: live.launchTxHash,
     tokenName: live.tokenName,
     ticker: live.ticker,
     currentBondAmountBnb: live.bondAmountBnb,
+    liveCurrentBalance: live.currentBalance,
+    liveStatus: live.status,
+    liveExpiresAtIso: live.expiresAtIso,
     notes: fallback.notes,
     bondTxHash: fallback.bondTxHash,
     slashTxHash: fallback.slashTxHash,

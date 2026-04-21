@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowUpRight } from "lucide-react";
 import { getBondForPage } from "@/lib/data/showcase";
 import { bscScanAddressUrl, bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 import { BondActionPanel } from "@/app/bond/[id]/bond-action-panel";
 import { BondTimePanel } from "@/app/bond/[id]/bond-time-panel";
+
+type StatusVariant = "slashed" | "refunded" | "active";
 
 export default async function BondDetailPage({
   params,
@@ -18,172 +21,200 @@ export default async function BondDetailPage({
   if (!bond) notFound();
 
   const resolvedBondTxHash = bondTxHash || ("bondTxHash" in bond ? bond.bondTxHash : undefined);
-  const bondAmountLabel = Number(bond.bondAmountBnb).toFixed(4);
+  const slashHash = "slashTxHash" in bond ? bond.slashTxHash : undefined;
+  const refundHash = "refundTxHash" in bond ? bond.refundTxHash : undefined;
+  const variant = statusVariant(bond.status);
+
+  const bondAmount = Number(bond.bondAmountBnb).toFixed(4);
+  const floor = Number(bond.declaredFloor);
+  const balance = Number(bond.currentBalance);
+  const raw = floor > 0 ? (balance / floor) * 100 : 0;
+  const gaugePct = Math.max(0, Math.min(100, raw));
+  const gaugeFill = variant === "refunded" ? "lime" : variant === "slashed" ? "red" : "yellow";
 
   return (
-    <section className="section-shell py-12">
-      <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
-        <div className="space-y-6">
-          <div className="surface-strong rounded-[1.5rem] p-8 lg:p-10">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="review-kicker">Bond dossier</div>
-                <h1 className="mt-3 font-display text-5xl font-semibold tracking-tight text-zinc-50">{bond.ticker}</h1>
-                <p className="mt-5 max-w-3xl text-base leading-8 text-zinc-300">{bond.notes}</p>
-              </div>
-              <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                bond.status === "SLASHED"
-                  ? "bg-red-500/10 text-red-200"
-                  : bond.status === "AT_RISK"
-                    ? "bg-amber-500/10 text-amber-200"
-                    : "bg-emerald-500/10 text-emerald-200"
-              }`}>
-                {bond.status}
-              </div>
-            </div>
+    <div>
+      <section>
+        <div className="warning-stripes warning-stripes--thin" />
+        <div className="section-shell py-10 md:py-14">
+          <Link
+            href="/directory"
+            className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--fg-muted)] hover:text-[var(--yellow)]"
+          >
+            ← Back to receipts
+          </Link>
 
-            <div className="mt-8 fact-strip cols-4">
-              <FactCell label="Bond size" value={`${bondAmountLabel} BNB`} />
-              <FactCell label="Declared floor" value={bond.declaredFloor} />
-              <FactCell label="Latest balance" value={bond.currentBalance} />
-              <FactCell label="Creator" value={bond.creator} mono />
+          <div className="mt-6 flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="label-mono">{bond.tokenName}</div>
+              <h1 className="mt-2 hazard-title--sm text-white" style={{ color: "#ffffff" }}>
+                {bond.ticker}
+              </h1>
+              <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/75">{bond.notes}</p>
             </div>
+            <span className={`status-badge status-badge--${variant} text-xs`}>
+              <span className={`live-dot live-dot--${gaugeFill}`} />
+              {bond.status}
+            </span>
           </div>
+        </div>
+      </section>
 
-          <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-            <div className="surface rounded-[1.5rem] p-6">
-              <div className="review-kicker">Proof model</div>
-              <div className="mt-5 space-y-3">
-                <InfoCell title="Vault-enforced" body="Slash, refund, expiry, grace window, floor, and declared creator wallets come from the contract." />
-                <InfoCell title="App-verified" body="Four.Meme launch parsing and proof-page context are app-level verification, not onchain proof of launch provenance." />
-                <InfoCell title="AI-assisted" body="Classification and rule compilation help narrow the promise. They do not decide slash or refund outcomes." />
+      <section className="section-shell">
+        <div className="hazard-card p-6 md:p-8">
+          <div className="grid gap-8 md:grid-cols-[1.1fr_0.9fr]">
+            <div>
+              <div className="label-mono">Bond staked</div>
+              <div className="giant giant--hero mt-2 text-[var(--yellow)]">
+                {bondAmount}
+                <span className="ml-2 text-2xl text-white/50">BNB</span>
               </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="surface rounded-[1.5rem] p-6">
-                <div className="review-kicker">Time window</div>
-                <div className="mt-5">
-                  <BondTimePanel expiresAtIso={bond.expiresAtIso} status={bond.status} />
+              <div className="mt-6 grid grid-cols-2 gap-6">
+                <div>
+                  <div className="label-mono">Declared floor</div>
+                  <div className="mt-1 font-mono text-sm text-white/90">{formatNumber(bond.declaredFloor)} tokens</div>
+                </div>
+                <div>
+                  <div className="label-mono">Latest balance</div>
+                  <div className="mt-1 font-mono text-sm text-white/90">{formatNumber(bond.currentBalance)}</div>
                 </div>
               </div>
-
-              <div className="surface rounded-[1.5rem] p-6">
-                <div className="review-kicker">State summary</div>
-                <div className="mt-5 data-list">
-                  <DataRow label="Status" value={bond.status} />
-                  <DataRow label="Token" value={bond.tokenName} />
-                  <DataRow label="Creator address" value={bond.creator} mono />
-                  <DataRow label="Expiry" value={new Date(bond.expiresAtIso).toLocaleString()} />
+              <div className="mt-6">
+                <div className="flex items-center justify-between">
+                  <span className="label-mono">Floor coverage</span>
+                  <span className="font-mono text-xs text-white/80">{gaugePct.toFixed(1)}%</span>
+                </div>
+                <div className="floor-gauge mt-2">
+                  <div className={`floor-gauge__fill floor-gauge__fill--${gaugeFill}`} style={{ width: `${gaugePct}%` }} />
                 </div>
               </div>
             </div>
+
+            <BondTimePanel
+              expiresAtIso={bond.expiresAtIso}
+              status={bond.status as "ACTIVE" | "AT_RISK" | "SLASHED" | "REFUNDED"}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="section-shell mt-6">
+        <div className="hazard-card p-6 md:p-8">
+          <div className="flex items-end justify-between gap-4">
+            <div className="label-mono">Receipt trail</div>
+            <a
+              href={fourMemeTokenUrl(bond.tokenAddress)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--yellow)] hover:text-white"
+            >
+              Four.Meme page <ArrowUpRight className="h-3 w-3" />
+            </a>
           </div>
 
-          <div className="surface rounded-[1.5rem] p-6">
-            <div className="review-kicker">Declared creator wallets</div>
-            <div className="mt-5 grid gap-3">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <ReceiptPill label="Launch" hash={bond.launchTxHash} kind="neutral" />
+            {resolvedBondTxHash ? (
+              <ReceiptPill label="Bond" hash={resolvedBondTxHash} kind="yellow" />
+            ) : null}
+            {slashHash ? <ReceiptPill label="Slash" hash={slashHash} kind="red" /> : null}
+            {refundHash ? <ReceiptPill label="Refund" hash={refundHash} kind="lime" /> : null}
+          </div>
+        </div>
+      </section>
+
+      <section className="section-shell mt-6">
+        <BondActionPanel
+          bondId={bond.id}
+          creator={bond.creator}
+          status={bond.status as "ACTIVE" | "AT_RISK" | "SLASHED" | "REFUNDED"}
+          expiresAtIso={bond.expiresAtIso}
+        />
+      </section>
+
+      <section className="section-shell mt-6">
+        <div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+          <div className="hazard-card p-6 md:p-8">
+            <div className="label-mono">Declared creator wallets</div>
+            <div className="mt-5 space-y-3">
               {bond.declaredCreatorWallets.map((wallet) => (
-                <div key={wallet} className="flex flex-col gap-3 rounded-[1rem] border border-white/8 bg-white/[0.025] p-4 md:flex-row md:items-center md:justify-between">
-                  <div className="font-mono text-sm text-zinc-200">{wallet}</div>
-                  <a className="button-secondary rounded-full px-4 py-2 text-sm" href={bscScanAddressUrl(wallet)} target="_blank" rel="noreferrer">
-                    View on BscScan
+                <div
+                  key={wallet}
+                  className="flex flex-col gap-3 rounded border border-[var(--border)] bg-white/[0.015] p-4 md:flex-row md:items-center md:justify-between"
+                >
+                  <div className="font-mono text-sm text-white/90 break-all">{wallet}</div>
+                  <a
+                    className="btn-outline"
+                    href={bscScanAddressUrl(wallet)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    BscScan
                   </a>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="surface rounded-[1.5rem] p-6">
-            <div className="review-kicker">Proof links</div>
-            <div className="mt-5 flex flex-wrap gap-3">
-              {resolvedBondTxHash ? (
-                <a className="button-primary rounded-full px-4 py-2.5 text-sm" href={bscScanTxUrl(resolvedBondTxHash)} target="_blank" rel="noreferrer">
-                  Bond tx
-                </a>
-              ) : null}
-              <a className="button-secondary rounded-full px-4 py-2.5 text-sm" href={bscScanTxUrl(bond.launchTxHash)} target="_blank" rel="noreferrer">
-                Launch tx
-              </a>
-              {"slashTxHash" in bond && bond.slashTxHash ? (
-                <a className="button-secondary rounded-full px-4 py-2.5 text-sm" href={bscScanTxUrl(bond.slashTxHash)} target="_blank" rel="noreferrer">
-                  Slash tx
-                </a>
-              ) : null}
-              {"refundTxHash" in bond && bond.refundTxHash ? (
-                <a className="button-secondary rounded-full px-4 py-2.5 text-sm" href={bscScanTxUrl(bond.refundTxHash)} target="_blank" rel="noreferrer">
-                  Refund tx
-                </a>
-              ) : null}
-              <a className="button-secondary rounded-full px-4 py-2.5 text-sm" href={fourMemeTokenUrl(bond.tokenAddress)} target="_blank" rel="noreferrer">
-                Four.Meme page
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <aside className="space-y-6 xl:sticky xl:top-28">
-          <div className="surface rounded-[1.5rem] p-6">
-            <div className="review-kicker">Reading note</div>
-            <p className="mt-4 text-sm leading-7 text-zinc-300">
-              This page is not claiming full rug detection. It shows one public promise, the creator wallets behind it, and the onchain consequence attached to that promise.
+          <Link href={`/certificate/${bond.id}`} className="hazard-card p-6 md:p-8 group">
+            <div className="label-mono text-[var(--yellow)]">Share card</div>
+            <h3 className="mt-3 hazard-title--sm">Open certificate.</h3>
+            <p className="mt-4 text-sm leading-relaxed text-white/70">
+              The bond as a shareable receipt: ticker, promise, floor, outcome, proof links.
             </p>
-          </div>
-
-          <BondActionPanel bondId={bond.id} creator={bond.creator} status={bond.status} expiresAtIso={bond.expiresAtIso} />
-
-          <Link href={`/certificate/${bond.id}`} className="surface block rounded-[1.5rem] p-6 transition hover:border-[rgba(199,115,59,0.24)]">
-            <div className="review-kicker">Certificate</div>
-            <div className="mt-3 text-2xl font-semibold text-zinc-50">Open the Bonded Launch Certificate</div>
-            <div className="mt-3 text-sm leading-7 text-zinc-400">
-              Creator-facing share surface with proof links, launch context, and the bond summary.
+            <div className="mt-5 inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--yellow)] group-hover:text-white">
+              Render <ArrowUpRight className="h-3 w-3" />
             </div>
           </Link>
-        </aside>
+        </div>
+      </section>
+
+      <div className="mt-14 warning-stripes warning-stripes--thin" />
+    </div>
+  );
+}
+
+function ReceiptPill({
+  label,
+  hash,
+  kind,
+}: {
+  label: string;
+  hash: string;
+  kind: "neutral" | "yellow" | "red" | "lime";
+}) {
+  const dotClass =
+    kind === "yellow" ? "yellow" : kind === "red" ? "red" : kind === "lime" ? "lime" : "muted";
+  return (
+    <a
+      href={bscScanTxUrl(hash)}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center justify-between rounded border border-[var(--border)] bg-white/[0.015] px-4 py-3 hover:border-[var(--yellow)] hover:bg-[var(--yellow-soft)] transition-colors"
+    >
+      <div className="flex items-center gap-2">
+        <span className={`live-dot live-dot--${dotClass}`} />
+        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--fg-muted)]">
+          {label}
+        </span>
       </div>
-    </section>
+      <span className="font-mono text-xs text-white/85">
+        {hash.slice(0, 6)}…{hash.slice(-4)}
+      </span>
+    </a>
   );
 }
 
-function FactCell({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="fact-cell">
-      <div className="fact-label">{label}</div>
-      <div className={`fact-value ${mono ? "font-mono text-xs sm:text-sm break-all" : ""}`}>{value}</div>
-    </div>
-  );
+function statusVariant(status: string): StatusVariant {
+  if (status === "SLASHED") return "slashed";
+  if (status === "REFUNDED") return "refunded";
+  return "active";
 }
 
-function InfoCell({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-[1rem] border border-white/8 bg-white/[0.025] p-4">
-      <div className="text-sm font-semibold text-zinc-100">{title}</div>
-      <div className="mt-2 text-sm leading-7 text-zinc-400">{body}</div>
-    </div>
-  );
-}
-
-function DataRow({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="data-row">
-      <div className="data-row-label">{label}</div>
-      <div className={`data-row-value ${mono ? "font-mono text-xs sm:text-sm" : ""}`}>{value}</div>
-    </div>
-  );
+function formatNumber(raw: string): string {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return raw;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(3)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString();
 }

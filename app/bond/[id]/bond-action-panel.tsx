@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowUpRight } from "lucide-react";
 import type { Address, Hex } from "viem";
 import { connectInjectedWallet, getBrowserBscPublicClient } from "@/lib/chain/browser-wallet";
 import { rugBountyVaultAbi } from "@/lib/chain/rug-bounty";
@@ -34,7 +35,6 @@ export function BondActionPanel({ bondId, creator, status, expiresAtIso }: BondA
   const refundUnlocked = now >= expiresAtMs + postExpirySlashWindowMs;
   const canTrySlash = !isTerminal && now < expiresAtMs + postExpirySlashWindowMs;
   const canTryRefund = !isTerminal && refundUnlocked;
-  const refundUnlockAtLabel = new Date(expiresAtMs + postExpirySlashWindowMs).toLocaleString();
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -88,67 +88,138 @@ export function BondActionPanel({ bondId, creator, status, expiresAtIso }: BondA
     }
   }
 
+  const phaseDot =
+    status === "SLASHED"
+      ? "red"
+      : status === "REFUNDED"
+        ? "lime"
+        : isExpired && !refundUnlocked
+          ? "red"
+          : refundUnlocked
+            ? "lime"
+            : "yellow";
+
   return (
-    <div className="surface rounded-3xl p-6">
-      <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Manual action surface</div>
-      <div className="mt-4 space-y-3 text-sm text-zinc-400">
-        <p>Any wallet can call <code>flagBreach</code> while the floor is below the declared minimum. That permanently records the breach and locks refund.</p>
-        <p>Any non-declared wallet can attempt <code>resolveBond</code>. If the floor is intact and no breach has been flagged, the tx reverts. Once a breach is flagged, the bond stays slashable even if the creator rebuys above floor later.</p>
-        <p>Only the creator can call <code>refundAfterExpiry</code>, and only after expiry plus the 10 minute post-expiry hunter window while no breach has been recorded and the bond is still above floor.</p>
-        <p>Refund unlock time on this browser clock: <span className="font-mono text-zinc-300">{refundUnlockAtLabel}</span></p>
-        <p>
-          Current state:
-          <span className="ml-2 font-mono text-zinc-300">{status}</span>
-          <span className="ml-4 font-mono text-zinc-300">{isExpired ? "expired" : "pre-expiry"}</span>
-          <span className="ml-4 font-mono text-zinc-300">{refundUnlocked ? "refund unlocked" : "hunter window active"}</span>
-        </p>
+    <div className="hazard-card p-6 md:p-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="label-mono">Permissionless action surface</div>
+          <h3 className="mt-2 hazard-title--sm">Slash. Flag. Refund.</h3>
+        </div>
+        <div className="inline-flex items-center gap-2">
+          <span className={`live-dot live-dot--${phaseDot}`} />
+          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--fg-muted)]">
+            {status} / {isExpired ? "expired" : "pre-expiry"} / {refundUnlocked ? "refund unlocked" : "hunter window"}
+          </span>
+        </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button className="button-secondary rounded-xl px-4 py-3 text-sm" type="button" onClick={connectWallet}>
-          {walletAddress ? `Wallet: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "Connect Wallet"}
-        </button>
-        <button
-          className="button-secondary rounded-xl px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-          type="button"
+      <div className="mt-6 grid gap-3 md:grid-cols-3">
+        <ActionCard
+          title="Flag breach"
+          accent="red"
+          description="Anyone can pin the breach while the balance is below floor. Locks refund."
+          functionName="flagBreach"
+          buttonLabel={pendingAction === "flagBreach" ? "Flagging..." : "Flag breach"}
           disabled={!canTrySlash || pendingAction !== null}
           onClick={() => submitAction("flagBreach")}
-        >
-          {pendingAction === "flagBreach" ? "Flagging breach..." : "Flag breach"}
-        </button>
-        <button
-          className="button-primary rounded-xl px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-          type="button"
+        />
+        <ActionCard
+          title="Slash bond"
+          accent="yellow"
+          description="Any non-declared wallet can try to slash. 80% to hunter, 20% to protocol."
+          functionName="resolveBond"
+          buttonLabel={pendingAction === "resolveBond" ? "Slashing..." : "Try to slash"}
           disabled={!canTrySlash || pendingAction !== null}
+          primary
           onClick={() => submitAction("resolveBond")}
-        >
-          {pendingAction === "resolveBond" ? "Submitting slash..." : "Try to slash"}
-        </button>
-        <button
-          className="button-secondary rounded-xl px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-          type="button"
+        />
+        <ActionCard
+          title="Claim refund"
+          accent="lime"
+          description="Creator-only. Unlocks after expiry + 10 minute hunter grace window."
+          functionName="refundAfterExpiry"
+          buttonLabel={pendingAction === "refundAfterExpiry" ? "Refunding..." : "Claim refund"}
           disabled={!canTryRefund || pendingAction !== null}
           onClick={() => submitAction("refundAfterExpiry")}
-        >
-          {pendingAction === "refundAfterExpiry" ? "Submitting refund..." : "Claim refund"}
+        />
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-5">
+        <button className="btn-outline" type="button" onClick={connectWallet}>
+          {walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : "Connect wallet"}
         </button>
+        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--fg-muted)]">
+          {walletAddress ? "Wallet connected" : "Inject wallet to act"}
+        </span>
       </div>
 
       {successHash ? (
-        <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-          <div className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-300/80">Action submitted</div>
-          <div className="mt-2 break-all font-mono">{successHash}</div>
-          <a className="mt-3 inline-flex text-emerald-50 underline underline-offset-4" href={bscScanTxUrl(successHash)} target="_blank" rel="noreferrer">
-            View on BscScan
+        <div className="mt-5 rounded border border-[rgba(57,255,20,0.35)] bg-[rgba(57,255,20,0.08)] p-4">
+          <div className="flex items-center gap-2">
+            <span className="live-dot live-dot--lime" />
+            <span className="label-mono text-[var(--lime)]">Action submitted</span>
+          </div>
+          <div className="mt-2 break-all font-mono text-xs text-white/85">{successHash}</div>
+          <a
+            href={bscScanTxUrl(successHash)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--lime)] hover:text-white"
+          >
+            View on BscScan <ArrowUpRight className="h-3 w-3" />
           </a>
         </div>
       ) : null}
 
       {error ? (
-        <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
-          {error}
+        <div className="mt-5 rounded border border-[rgba(255,46,46,0.35)] bg-[rgba(255,46,46,0.08)] p-4">
+          <div className="flex items-center gap-2">
+            <span className="live-dot live-dot--red" />
+            <span className="label-mono text-[var(--red)]">Transaction error</span>
+          </div>
+          <div className="mt-2 break-words font-mono text-xs text-white/85">{error}</div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function ActionCard({
+  title,
+  accent,
+  description,
+  buttonLabel,
+  disabled,
+  primary,
+  onClick,
+}: {
+  title: string;
+  accent: "red" | "yellow" | "lime";
+  description: string;
+  functionName: string;
+  buttonLabel: string;
+  disabled: boolean;
+  primary?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="flex flex-col justify-between gap-4 rounded border border-[var(--border)] bg-white/[0.015] p-4">
+      <div>
+        <div className="flex items-center gap-2">
+          <span className={`live-dot live-dot--${accent}`} />
+          <span className="label-mono">{title}</span>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-white/70">{description}</p>
+      </div>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onClick}
+        className={`${primary ? "btn-hazard" : "btn-outline"} disabled:cursor-not-allowed disabled:opacity-40`}
+      >
+        {buttonLabel}
+      </button>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Scale } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { bscScanAddressUrl, bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 import { getCurrentMainnetProofs, refundProof, showcaseProof } from "@/lib/data/showcase";
 import { getHunterRuntimeStatus } from "@/lib/data/hunter-status";
@@ -7,19 +7,25 @@ import { getConfiguredVaultAddress } from "@/lib/data/live-bonds";
 
 export const dynamic = "force-dynamic";
 
-const sourceRows = [
-  { label: "Onchain enforced", value: "Floor, expiry, grace window, declared wallets, slash, and refund are enforced by the verified vault." },
-  { label: "App verified", value: "The official create flow requires a successful real Four.Meme TokenCreate parse before it will build a bond." },
-  { label: "Verified proof set", value: "The public transaction chains are curated real examples, not seeded screenshots or mock rows." },
-  { label: "Runtime verified", value: "Watcher status comes from the VPS heartbeat path, not from showcase fallback data." },
+const evidenceRows = [
+  { label: "Onchain enforced", body: "Floor, expiry, grace window, declared wallets, slash, and refund are enforced by the verified vault." },
+  { label: "App verified", body: "The official create flow requires a successful real Four.Meme TokenCreate parse before it will build a bond." },
+  { label: "Verified proof set", body: "The public transaction chains are curated real examples, not seeded screenshots or mock rows." },
+  { label: "Runtime verified", body: "Watcher status comes from the VPS heartbeat path, not from showcase fallback data." },
 ];
 
-const limitationRows = [
+const aiRows = [
+  { label: "Compression", body: "AI compresses vague creator messaging into one machine-checkable oath instead of leaving traders to interpret launch hype manually." },
+  { label: "Segmentation", body: "It separates enforceable balance-floor promises from social-only statements so the vault only bonds the sentence it can actually judge." },
+  { label: "Boundary", body: "AI does not decide slash or refund. It narrows the claim; the contract and watcher govern the evidence path." },
+];
+
+const limits = [
   "This does not detect every rug.",
   "This does not detect hidden undeclared wallets.",
   "The vault records launch metadata for display, but does not prove Four.Meme history onchain.",
   "Slash is permissionless. A third-party hunter can beat the watcher to the bounty.",
-  "During the hackathon demo period, the 20% protocol leg routes to an author-controlled treasury.",
+  "During the hackathon demo, the 20% protocol leg routes to an author-controlled treasury.",
 ];
 
 export default async function JudgeModePage() {
@@ -28,208 +34,242 @@ export default async function JudgeModePage() {
   const proofs = await getCurrentMainnetProofs();
   const slashProofBond = proofs.find((bond) => bond.id === showcaseProof.bondId) ?? null;
   const refundBond = proofs.find((bond) => bond.id === refundProof.bondId) ?? null;
-  const watchedBondIdsLabel = hunterStatus.watchedBondIds.length
+  const watchedLabel = hunterStatus.watchedBondIds.length
     ? hunterStatus.watchedBondIds.join(", ")
     : hunterStatus.status === "online"
       ? "watcher online, no active bonds currently monitored"
       : "no active bonds currently monitored";
+  const runtimeDot = hunterStatus.status === "online" ? "lime" : hunterStatus.status === "stale" ? "yellow" : "muted";
 
   return (
-    <section className="section-shell py-12">
-      <div className="surface-strong p-8 lg:p-10">
-        <div className="status-chip inline-flex items-center gap-2 rounded-full px-4 py-2 font-mono text-xs uppercase tracking-[0.24em]">
-          <Scale className="h-3.5 w-3.5 text-[var(--accent)]" />
-          Judge packet
-        </div>
-
-        <div className="mt-8 grid gap-8 xl:grid-cols-[1.08fr_0.92fr]">
-          <div>
-            <div className="review-kicker">Executive summary</div>
-            <h1 className="review-title mt-3 text-zinc-50">A Four.Meme trust primitive presented as an audit surface.</h1>
-            <p className="review-subtitle mt-6">
-              This page is the review packet. It shows the exact claim RugBounty makes, the proof chain already visible on mainnet, the live watcher context, and the limits of what the system does not claim to solve.
-            </p>
-            <div className="mt-7 rounded-[1rem] border border-white/8 bg-white/[0.025] p-5">
-              <div className="data-row-label">Review in this order</div>
-              <div className="mt-3 space-y-2 text-sm leading-7 text-zinc-300">
-                <div>1. Verify the contract and source.</div>
-                <div>2. Verify the slash and refund exhibits.</div>
-                <div>3. Verify runtime heartbeat and watcher status.</div>
-                <div>4. Read the limitations and decide whether the claim is scoped honestly.</div>
+    <div>
+      <section>
+        <div className="warning-stripes warning-stripes--thin" />
+        <div className="section-shell py-12 md:py-16">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="label-mono">Judge packet</div>
+              <h1 className="mt-3 hazard-title--sm">Claim. Proof. Limits.</h1>
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
+                This page is the review packet. It shows the exact claim, the mainnet proof chain, the live watcher context, and what the system does not claim to solve.
+              </p>
+            </div>
+            <div className="hazard-card p-5 lg:w-[380px]">
+              <div className="label-mono">Packet metadata</div>
+              <div className="mt-4 space-y-3">
+                <Meta label="Vault" value={vaultAddress ? `${vaultAddress.slice(0, 8)}…${vaultAddress.slice(-6)}` : "not configured"} mono />
+                <Meta
+                  label="Runtime"
+                  value={`${hunterStatus.runtime.toUpperCase()} / ${hunterStatus.status.toUpperCase()}`}
+                  dot={runtimeDot}
+                />
+                <Meta
+                  label="Last heartbeat"
+                  value={hunterStatus.lastTickIso ? new Date(hunterStatus.lastTickIso).toLocaleString() : "unknown"}
+                />
+                <Meta label="Watched bonds" value={watchedLabel} />
               </div>
             </div>
           </div>
 
-          <aside className="dossier-panel">
-            <div className="review-kicker">Packet metadata</div>
-            <div className="mt-5 dossier-list">
-              <DossierRow label="Verified vault" value={vaultAddress ?? "not configured"} mono />
-              <DossierRow label="Runtime" value={`${hunterStatus.runtime.toUpperCase()} · ${hunterStatus.status.toUpperCase()}`} />
-              <DossierRow label="Last heartbeat" value={hunterStatus.lastTickIso ? new Date(hunterStatus.lastTickIso).toLocaleString() : "unknown"} />
-              <DossierRow label="Watched bonds" value={watchedBondIdsLabel} />
+          <div className="mt-8 hazard-card p-5">
+            <div className="label-mono">Review in this order</div>
+            <div className="mt-3 grid gap-3 md:grid-cols-4">
+              <Step index="01" body="Verify the contract and source." />
+              <Step index="02" body="Verify the slash and refund exhibits." />
+              <Step index="03" body="Verify runtime heartbeat status." />
+              <Step index="04" body="Read the limitations, decide honest scope." />
             </div>
-          </aside>
-        </div>
-      </div>
-
-      <div className="mt-12 section-heading">
-        <div>
-          <div className="review-kicker">Mainnet exhibits</div>
-          <h2 className="mt-2 text-4xl font-semibold text-zinc-50">The failure path and success path are both already public.</h2>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        {slashProofBond ? (
-          <ExhibitPanel
-            exhibit="Exhibit A / slashed bond"
-            title={`${slashProofBond.ticker} breached the declared floor.`}
-            description="The creator broke the retained-balance promise. The watcher flagged the breach, and a third-party hunter captured the permissionless slash."
-            status="SLASHED"
-            tone="danger"
-            metrics={[
-              { label: "Original bond", value: `${slashProofBond.bondAmountBnb} BNB` },
-              { label: "Declared floor", value: slashProofBond.declaredFloor },
-              { label: "Latest observed balance", value: slashProofBond.currentBalance },
-            ]}
-            links={[
-              { label: "Launch tx", href: bscScanTxUrl(showcaseProof.launchTxHash), primary: true },
-              { label: "Bond tx", href: bscScanTxUrl(showcaseProof.bondTxHash) },
-              { label: "Breach flag", href: bscScanTxUrl(showcaseProof.breachFlagTxHash) },
-              { label: "Slash tx", href: bscScanTxUrl(showcaseProof.slashTxHash) },
-              { label: "Four.Meme", href: fourMemeTokenUrl(slashProofBond.tokenAddress) },
-            ]}
-          />
-        ) : null}
-
-        {refundBond ? (
-          <ExhibitPanel
-            exhibit="Exhibit B / refunded bond"
-            title={`${refundBond.ticker} held through expiry and grace.`}
-            description="The creator preserved the declared floor until the refund path opened, then reclaimed the bond onchain."
-            status="REFUNDED"
-            tone="success"
-            metrics={[
-              { label: "Original bond", value: `${refundBond.bondAmountBnb} BNB` },
-              { label: "Declared floor", value: refundBond.declaredFloor },
-              { label: "Latest observed balance", value: refundBond.currentBalance },
-            ]}
-            links={[
-              { label: "Launch tx", href: bscScanTxUrl(refundProof.launchTxHash), primary: true },
-              { label: "Bond tx", href: bscScanTxUrl(refundProof.bondTxHash) },
-              { label: "Refund tx", href: bscScanTxUrl(refundProof.refundTxHash) },
-              { label: "Four.Meme", href: fourMemeTokenUrl(refundBond.tokenAddress) },
-            ]}
-          />
-        ) : null}
-      </div>
-
-      <div className="mt-12 grid gap-4 xl:grid-cols-[1.04fr_0.96fr]">
-        <div className="surface p-6">
-          <div className="review-kicker">Evidence register</div>
-          <div className="mt-5 space-y-4">
-            {sourceRows.map((row) => (
-              <LongformRow key={row.label} label={row.label} body={row.value} />
-            ))}
           </div>
         </div>
+      </section>
 
-        <div className="surface p-6">
-          <div className="review-kicker">Why AI is in the loop</div>
-          <div className="mt-5 space-y-4">
-            <LongformRow
-              label="Compression"
-              body="AI compresses vague creator messaging into one machine-checkable oath instead of leaving traders to interpret launch hype manually."
+      <section className="section-shell">
+        <div className="label-mono">Mainnet exhibits</div>
+        <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+          Failure path and success path are both already public.
+        </h2>
+
+        <div className="mt-6 grid gap-5 lg:grid-cols-2">
+          {slashProofBond ? (
+            <ExhibitCard
+              exhibit="Exhibit A / slashed bond"
+              title={`${slashProofBond.ticker} breached the declared floor.`}
+              description="The creator broke the retained-balance promise. Watcher flagged, third-party hunter captured the permissionless slash."
+              status="SLASHED"
+              tone="slashed"
+              metrics={[
+                { label: "Bond", value: `${slashProofBond.bondAmountBnb} BNB` },
+                { label: "Floor", value: slashProofBond.declaredFloor },
+                { label: "Last balance", value: slashProofBond.currentBalance },
+              ]}
+              links={[
+                { label: "Launch", href: bscScanTxUrl(showcaseProof.launchTxHash), tone: "muted" },
+                { label: "Bond", href: bscScanTxUrl(showcaseProof.bondTxHash), tone: "yellow" },
+                { label: "Flag", href: bscScanTxUrl(showcaseProof.breachFlagTxHash), tone: "red" },
+                { label: "Slash", href: bscScanTxUrl(showcaseProof.slashTxHash), tone: "red" },
+                { label: "Four.Meme", href: fourMemeTokenUrl(slashProofBond.tokenAddress), tone: "muted" },
+              ]}
             />
-            <LongformRow
-              label="Segmentation"
-              body="It separates enforceable balance-floor promises from social-only statements so the vault only bonds the sentence it can actually judge."
-            />
-            <LongformRow
-              label="Boundary"
-              body="AI does not decide slash or refund. It narrows the claim; the contract and watcher still govern the evidence path."
-            />
-          </div>
-        </div>
-      </div>
+          ) : null}
 
-      <div className="mt-12 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="surface p-6">
-          <div className="review-kicker">Not claimed</div>
-          <div className="mt-5 space-y-3">
-            {limitationRows.map((item) => (
-              <div key={item} className="rounded-[0.9rem] border border-white/8 bg-white/[0.025] p-4 text-sm leading-7 text-zinc-300">
-                {item}
-              </div>
-            ))}
-          </div>
+          {refundBond ? (
+            <ExhibitCard
+              exhibit="Exhibit B / refunded bond"
+              title={`${refundBond.ticker} held through expiry and grace.`}
+              description="The creator preserved the declared floor until the refund path opened, then reclaimed the bond onchain."
+              status="REFUNDED"
+              tone="refunded"
+              metrics={[
+                { label: "Bond", value: `${refundBond.bondAmountBnb} BNB` },
+                { label: "Floor", value: refundBond.declaredFloor },
+                { label: "Last balance", value: refundBond.currentBalance },
+              ]}
+              links={[
+                { label: "Launch", href: bscScanTxUrl(refundProof.launchTxHash), tone: "muted" },
+                { label: "Bond", href: bscScanTxUrl(refundProof.bondTxHash), tone: "yellow" },
+                { label: "Refund", href: bscScanTxUrl(refundProof.refundTxHash), tone: "lime" },
+                { label: "Four.Meme", href: fourMemeTokenUrl(refundBond.tokenAddress), tone: "muted" },
+              ]}
+            />
+          ) : null}
         </div>
+      </section>
 
-        <div className="surface p-6">
-          <div className="review-kicker">Direct inspection</div>
-          <div className="mt-5 data-list">
-            <DataRow label="Contract" value="Read the verified vault and confirm slash/refund semantics." />
-            <DataRow label="Official flow" value="Confirm the create flow requires real Four.Meme parse evidence before it can build the payload." />
-            <DataRow label="Proof quality" value="Follow the launch, bond, breach/refund, and certificate links to the public proof surfaces." />
-            <DataRow label="Runtime" value="Check heartbeat and watched-bond output. The watcher is deliberately exposed as operational context." />
+      <section className="section-shell mt-12">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div className="hazard-card p-6">
+            <div className="label-mono">Evidence register</div>
+            <div className="mt-4 space-y-4">
+              {evidenceRows.map((row) => (
+                <LongRow key={row.label} label={row.label} body={row.body} />
+              ))}
+            </div>
           </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            {vaultAddress ? (
-              <>
-                <a href={bscScanAddressUrl(vaultAddress)} target="_blank" rel="noreferrer" className="button-primary rounded-lg px-4 py-2.5 text-sm">
-                  Open contract
-                </a>
-                <a href={`${bscScanAddressUrl(vaultAddress)}#code`} target="_blank" rel="noreferrer" className="button-secondary rounded-lg px-4 py-2.5 text-sm">
-                  View source
-                </a>
-              </>
-            ) : null}
-            <Link href="/create" className="button-secondary rounded-lg px-4 py-2.5 text-sm">
-              Open bond flow
-            </Link>
+          <div className="hazard-card p-6">
+            <div className="label-mono">Why AI is in the loop</div>
+            <div className="mt-4 space-y-4">
+              {aiRows.map((row) => (
+                <LongRow key={row.label} label={row.label} body={row.body} />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section className="section-shell mt-12">
+        <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="hazard-card p-6">
+            <div className="flex items-center gap-2">
+              <span className="live-dot live-dot--yellow" />
+              <span className="label-mono text-[var(--yellow)]">Not claimed</span>
+            </div>
+            <div className="mt-4 space-y-2">
+              {limits.map((item) => (
+                <div
+                  key={item}
+                  className="rounded border border-[var(--border)] bg-white/[0.015] px-4 py-3 text-xs leading-relaxed text-white/80"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="hazard-card p-6">
+            <div className="label-mono">Direct inspection</div>
+            <div className="mt-4 space-y-3">
+              <InspectRow label="Contract" body="Read the verified vault and confirm slash/refund semantics." />
+              <InspectRow label="Create flow" body="Confirm it requires real Four.Meme parse evidence before signing." />
+              <InspectRow label="Proof pages" body="Follow launch, bond, breach/refund, and certificate links." />
+              <InspectRow label="Runtime" body="Check heartbeat and watched-bond output on the hero card." />
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {vaultAddress ? (
+                <>
+                  <a
+                    href={bscScanAddressUrl(vaultAddress)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-hazard"
+                  >
+                    Open contract <ArrowUpRight className="h-3.5 w-3.5" />
+                  </a>
+                  <a
+                    href={`${bscScanAddressUrl(vaultAddress)}#code`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-outline"
+                  >
+                    View source <ArrowUpRight className="h-3.5 w-3.5" />
+                  </a>
+                </>
+              ) : null}
+              <Link href="/create" className="btn-outline">
+                Open bond flow <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="mt-14 warning-stripes warning-stripes--thin" />
+    </div>
   );
 }
 
-function DossierRow({
+function Meta({
   label,
   value,
-  mono = false,
+  mono,
+  dot,
 }: {
   label: string;
   value: string;
   mono?: boolean;
+  dot?: "lime" | "yellow" | "red" | "muted";
 }) {
   return (
-    <div className="data-row">
-      <div className="data-row-label">{label}</div>
-      <div className={`data-row-value ${mono ? "font-mono text-xs sm:text-sm break-all" : ""}`}>{value}</div>
+    <div className="flex items-start justify-between gap-4">
+      <span className="label-mono">{label}</span>
+      <span className={`flex items-center gap-2 text-right text-xs ${mono ? "font-mono" : ""} text-white/90`}>
+        {dot ? <span className={`live-dot live-dot--${dot}`} /> : null}
+        <span className="break-all">{value}</span>
+      </span>
     </div>
   );
 }
 
-function DataRow({ label, value }: { label: string; value: string }) {
+function Step({ index, body }: { index: string; body: string }) {
   return (
-    <div className="data-row">
-      <div className="data-row-label">{label}</div>
-      <div className="data-row-value">{value}</div>
+    <div className="rounded border border-[var(--border)] bg-white/[0.015] p-3">
+      <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--yellow)]">{index}</div>
+      <div className="mt-1 text-xs leading-relaxed text-white/85">{body}</div>
     </div>
   );
 }
 
-function LongformRow({ label, body }: { label: string; body: string }) {
+function LongRow({ label, body }: { label: string; body: string }) {
   return (
-    <div className="longform-row">
-      <div className="data-row-label">{label}</div>
-      <div className="mt-2 text-sm leading-8 text-zinc-300">{body}</div>
+    <div>
+      <div className="label-mono">{label}</div>
+      <p className="mt-2 text-sm leading-relaxed text-white/80">{body}</p>
     </div>
   );
 }
 
-function ExhibitPanel({
+function InspectRow({ label, body }: { label: string; body: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="live-dot live-dot--muted mt-1.5 flex-shrink-0" />
+      <div>
+        <div className="label-mono">{label}</div>
+        <p className="mt-1 text-xs leading-relaxed text-white/75">{body}</p>
+      </div>
+    </div>
+  );
+}
+
+function ExhibitCard({
   exhibit,
   title,
   description,
@@ -242,36 +282,47 @@ function ExhibitPanel({
   title: string;
   description: string;
   status: string;
-  tone: "success" | "danger";
+  tone: "slashed" | "refunded";
   metrics: Array<{ label: string; value: string }>;
-  links: Array<{ label: string; href: string; primary?: boolean }>;
+  links: Array<{ label: string; href: string; tone: "muted" | "yellow" | "red" | "lime" }>;
 }) {
   return (
-    <div className="surface p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className={`hazard-card hazard-card--${tone} p-6`}>
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="review-kicker">{exhibit}</div>
-          <h2 className="mt-3 text-3xl font-semibold text-zinc-50">{title}</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-400">{description}</p>
+          <div className="label-mono">{exhibit}</div>
+          <h3 className="mt-2 font-display text-xl font-extrabold tracking-tight text-white md:text-2xl">
+            {title}
+          </h3>
         </div>
-        <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${tone === "danger" ? "bg-red-500/10 text-red-200" : "bg-emerald-500/10 text-emerald-200"}`}>
+        <span className={`status-badge status-badge--${tone}`}>
+          <span className={`live-dot live-dot--${tone === "slashed" ? "red" : "lime"}`} />
           {status}
-        </div>
+        </span>
       </div>
+      <p className="mt-3 text-sm leading-relaxed text-white/75">{description}</p>
 
-      <div className="mt-6 fact-strip cols-3">
-        {metrics.map((metric) => (
-          <div key={metric.label} className="fact-cell">
-            <div className="fact-label">{metric.label}</div>
-            <div className="fact-value">{metric.value}</div>
+      <div className="mt-5 grid grid-cols-3 gap-3">
+        {metrics.map((m) => (
+          <div key={m.label} className="rounded border border-[var(--border)] bg-white/[0.015] p-3">
+            <div className="label-mono">{m.label}</div>
+            <div className="mt-1 break-all font-mono text-xs text-white/90">{m.value}</div>
           </div>
         ))}
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-5 flex flex-wrap gap-2">
         {links.map((link) => (
-          <a key={link.label} href={link.href} target="_blank" rel="noreferrer" className={`${link.primary ? "button-primary" : "button-secondary"} rounded-lg px-4 py-2.5 text-sm`}>
+          <a
+            key={link.label}
+            href={link.href}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded border border-[var(--border)] bg-white/[0.015] px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.22em] text-white/85 hover:border-[var(--yellow)] hover:bg-[var(--yellow-soft)] transition-colors"
+          >
+            <span className={`live-dot live-dot--${link.tone}`} />
             {link.label}
+            <ArrowUpRight className="h-3 w-3" />
           </a>
         ))}
       </div>

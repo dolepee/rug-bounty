@@ -1,7 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { decodeEventLog, formatEther, formatUnits, getAddress, isAddress, keccak256, parseEther, stringToHex, type Address, type Hex } from "viem";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
+import {
+  decodeEventLog,
+  formatEther,
+  formatUnits,
+  getAddress,
+  isAddress,
+  keccak256,
+  parseEther,
+  stringToHex,
+  type Address,
+  type Hex,
+} from "viem";
 import { connectInjectedWallet, getBrowserBscPublicClient } from "@/lib/chain/browser-wallet";
 import { erc20MetadataAbi } from "@/lib/chain/erc20";
 import { rugBountyVaultAbi } from "@/lib/chain/rug-bounty";
@@ -398,271 +411,311 @@ export default function CreateBondPage() {
     }
   }
 
+  const launchReady = Boolean(launchEvidence);
+  const oathReady = Boolean(compiled?.rule);
+  const walletReady = Boolean(walletAddress);
+  const canSubmit = launchReady && oathReady && !submitLoading;
+
   return (
-    <section className="section-shell py-12">
-      <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
-        <div className="surface-strong p-8 lg:p-10">
-          <div className="status-chip inline-flex items-center gap-2 rounded-full px-4 py-2 font-mono text-xs uppercase tracking-[0.24em]">
-            Bond instrument builder
-          </div>
-          <div className="mt-7 review-kicker">Submission packet / evidence first / signature last</div>
-          <h1 className="mt-3 max-w-4xl font-display text-5xl font-semibold tracking-tight text-zinc-50 sm:text-6xl">
-            Draft the one sentence the vault will actually enforce.
-          </h1>
-          <p className="mt-6 max-w-3xl text-base leading-8 text-zinc-300">
-            This page should read like a transaction dossier, not an internal console. First verify the launch. Then narrow the claim. Then sign one onchain bond against the configured vault.
-          </p>
-          <div className="mt-8 grid gap-3 lg:grid-cols-3">
-            <NarrativeCell label="01 / Verify launch" body="A real Four.Meme launch transaction is required before the official bond path opens." />
-            <NarrativeCell label="02 / Narrow the claim" body="AI isolates the enforceable sentence instead of bonding the full block of launch hype." />
-            <NarrativeCell label="03 / Sign the bond" body="The creator wallet signs one transaction against the configured vault and public proof path." />
-          </div>
-        </div>
-
-        <div className="surface p-6">
-          <div className="review-kicker">Filing notes</div>
-          <div className="mt-5 space-y-3">
-            <Guardrail body="The official bond flow is hard-gated to a successful real Four.Meme parse. If parsing fails, the fix is the evidence path, not manual launch spoofing." />
-            <Guardrail body="The creator wallet from the parse must match the connected signer and must appear in the declared creator wallet list." />
-            <Guardrail body={`Minimum bond on the current vault is ${minBondLabel} BNB. Current vault: ${vaultAddress || "not configured"}.`} accent />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-10 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="surface p-6">
-          <div className="review-kicker">Bond drafting flow</div>
-          <div className="mt-6 grid gap-8">
+    <div>
+      <section>
+        <div className="warning-stripes warning-stripes--thin" />
+        <div className="section-shell py-12 md:py-16">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
-              <div className="review-kicker">Step 1 / launch evidence</div>
-              <div className="mt-3 flex gap-3">
-                <input value={launchTxHash} onChange={(event) => handleLaunchTxHashChange(event.target.value)} placeholder="Paste a Four.Meme launch tx hash" className="font-mono" />
-                <button className="button-secondary rounded-full px-4 py-3 text-sm" onClick={parseLaunchTx} type="button">
-                  Parse
-                </button>
-              </div>
-              {parserError ? <div className="mt-3 rounded-[0.9rem] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{parserError}</div> : null}
+              <div className="label-mono">Bond your launch</div>
+              <h1 className="mt-3 hazard-title--sm">Write your promise.<br/>Stake the bond.</h1>
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
+                Paste a Four.Meme launch. Compile your public promise into one enforceable rule. Sign one transaction — the vault holds your bond until expiry or slash.
+              </p>
             </div>
+            <StepStrip
+              launchReady={launchReady}
+              oathReady={oathReady}
+              walletReady={walletReady}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="section-shell">
+        <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+          <div className="hazard-card p-6 md:p-8">
+            <div className="flex items-center gap-2">
+              <span className={`live-dot live-dot--${launchReady ? "lime" : "yellow"}`} />
+              <span className="label-mono">Step 1 / Launch evidence</span>
+            </div>
+            <div className="mt-4 flex flex-col gap-3 md:flex-row">
+              <input
+                value={launchTxHash}
+                onChange={(event) => handleLaunchTxHashChange(event.target.value)}
+                placeholder="Paste a Four.Meme launch tx hash (0x...)"
+                className="font-mono text-sm"
+              />
+              <button
+                className="btn-hazard whitespace-nowrap"
+                type="button"
+                onClick={parseLaunchTx}
+              >
+                Parse launch
+              </button>
+            </div>
+            {parserError ? <ErrorBox message={parserError} /> : null}
 
             {launchEvidence ? (
-              <div className="grid gap-4">
-                <div>
-                  <div className="review-kicker">Parsed launch evidence</div>
-                  <div className="mt-4 fact-strip cols-4">
-                    <EvidenceRow label="Token" value={launchEvidence.token} mono />
-                    <EvidenceRow label="Creator" value={launchEvidence.creator} mono />
-                    <EvidenceRow label="Name" value={launchEvidence.name} />
-                    <EvidenceRow label="Symbol" value={launchEvidence.symbol} />
-                    <EvidenceRow label="Launch time" value={new Date(Number(launchEvidence.launchTime) * 1000).toLocaleString()} />
-                    <EvidenceRow label="Total supply" value={launchChecks ? formatTokenUnits(launchChecks.totalSupply, launchEvidence.tokenDecimals) : "Loading…"} />
-                    <EvidenceRow label="Decimals" value={String(launchEvidence.tokenDecimals)} />
-                    <EvidenceRow label="Launch fee" value={`${formatEther(BigInt(launchEvidence.launchFee))} BNB`} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="review-kicker">Launch checks</div>
-                    {launchGuidance?.suggestedFirstLine ? (
-                      <button className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-soft)] hover:text-white" type="button" onClick={applySuggestedFloor}>
-                        Use recommended floor
-                      </button>
-                    ) : null}
-                  </div>
-                  {launchChecksError ? <div className="mt-3 rounded-[0.9rem] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{launchChecksError}</div> : null}
-                  {launchGuidance ? (
-                    <div className="mt-4 fact-strip cols-4">
-                      <EvidenceRow label="Creator balance" value={launchGuidance.creatorBalanceLabel} />
-                      <EvidenceRow label="Minimum floor" value={launchGuidance.minBondableFloorLabel} />
-                      <EvidenceRow label="Recommended floor" value={launchGuidance.recommendedFloorLabel ?? "Buy more tokens first"} />
-                      <EvidenceRow label="Suggested first line" value={launchGuidance.suggestedFirstLine ?? "No safe floor yet"} />
-                    </div>
-                  ) : null}
-                  {launchGuidance?.warnings.length ? (
-                    <div className="mt-4 space-y-2">
-                      {launchGuidance.warnings.map((warning) => (
-                        <div key={warning} className="rounded-[0.9rem] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                          {warning}
-                        </div>
-                      ))}
-                      <div className="rounded-[0.9rem] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                        Once a floor breach is flagged onchain, refund is permanently locked even if the creator later buys back above floor.
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Fact label="Token" value={launchEvidence.token} mono />
+                <Fact label="Creator" value={launchEvidence.creator} mono />
+                <Fact label="Name" value={launchEvidence.name} />
+                <Fact label="Symbol" value={launchEvidence.symbol} />
+                <Fact label="Launch time" value={new Date(Number(launchEvidence.launchTime) * 1000).toLocaleString()} />
+                <Fact label="Supply" value={launchChecks ? formatTokenUnits(launchChecks.totalSupply, launchEvidence.tokenDecimals) : "Loading…"} />
+                <Fact label="Decimals" value={String(launchEvidence.tokenDecimals)} />
+                <Fact label="Launch fee" value={`${formatEther(BigInt(launchEvidence.launchFee))} BNB`} />
               </div>
             ) : (
-              <div className="rounded-[1rem] border border-white/8 bg-white/[0.025] p-4 text-sm leading-7 text-zinc-400">
-                Parse a real launch first. The official bond path stays closed until launch evidence is verified.
+              <div className="mt-4 rounded border border-[var(--border)] bg-white/[0.015] p-4 text-sm text-white/70">
+                Bond creation stays locked until a real Four.Meme launch is verified onchain.
               </div>
             )}
 
-            <div className="section-rule" />
-
-            <div>
-              <div className="review-kicker">Step 2 / claim draft</div>
-              <div className="mt-4 grid gap-5">
-                <div>
-                  <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Declared creator wallets</label>
-                  <textarea
-                    value={declaredWalletsInput}
-                    onChange={(event) => setDeclaredWalletsInput(event.target.value)}
-                    placeholder="0xcreator..., 0xmultisig..."
-                    className="font-mono"
-                  />
+            {launchGuidance ? (
+              <div className="mt-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="label-mono">Floor guidance</span>
+                  {launchGuidance.suggestedFirstLine ? (
+                    <button className="btn-outline text-[11px]" type="button" onClick={applySuggestedFloor}>
+                      Use recommended floor
+                    </button>
+                  ) : null}
                 </div>
-
-                <div>
-                  <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Oath text</label>
-                  <textarea value={oathText} onChange={(event) => handleOathTextChange(event.target.value)} />
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <Fact label="Creator balance" value={launchGuidance.creatorBalanceLabel} />
+                  <Fact label="Minimum floor" value={launchGuidance.minBondableFloorLabel} />
+                  <Fact label="Recommended floor" value={launchGuidance.recommendedFloorLabel ?? "Buy more tokens first"} />
+                  <Fact label="Suggested oath line" value={launchGuidance.suggestedFirstLine ?? "No safe floor yet"} />
                 </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <button className="button-primary rounded-lg px-5 py-3 text-sm" onClick={runClassifier} disabled={loading} type="button">
-                    {loading ? "Compiling..." : "Compile Claim"}
-                  </button>
-                  <button className="button-secondary rounded-lg px-5 py-3 text-sm" onClick={connectWallet} type="button">
-                    {walletAddress ? `Wallet: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "Connect Wallet"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="section-rule" />
-
-            <div>
-              <div className="review-kicker">Step 3 / bond transaction</div>
-              <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
-                <div>
-                  <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Bond amount</label>
-                  <input value={bondAmountBnb} onChange={(event) => setBondAmountBnb(event.target.value)} placeholder="0.02" className="font-mono" />
-                  <div className="mt-2 text-xs text-zinc-500">Minimum bond on the current vault: {minBondLabel} BNB.</div>
-                </div>
-                <div className="flex items-end">
-                  <button
-                    className="button-primary rounded-lg px-5 py-3 text-sm"
-                    onClick={submitBond}
-                    disabled={submitLoading || !compiled?.rule || !launchEvidence}
-                    type="button"
-                  >
-                    {submitLoading ? "Submitting..." : "Create Bond Onchain"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[1rem] border border-white/8 bg-white/[0.025] p-4 text-sm leading-7 text-zinc-300">
-              During the hackathon demo period, the 20% protocol leg routes to an author-controlled treasury. Production deployments should point it at a burn, DAO, or multisig.
-            </div>
-
-            {classifierError ? <div className="rounded-[0.9rem] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{classifierError}</div> : null}
-            {submitError ? <div className="rounded-[0.9rem] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{submitError}</div> : null}
-
-            {txHash ? (
-              <div className="rounded-[1rem] border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-                <div className="review-kicker text-emerald-300/80">Bond submitted</div>
-                <div className="mt-3 font-mono break-all">{txHash}</div>
-                {createdBondId ? (
-                  <div className="mt-4">
-                    <div>
-                      Bond ID: <span className="font-mono">{createdBondId}</span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <a href={`/bond/${createdBondId}?bondTxHash=${txHash}`} className="button-secondary rounded-lg px-3 py-2 text-xs">
-                        Open proof page
-                      </a>
-                      <a href={`/certificate/${createdBondId}`} className="button-secondary rounded-lg px-3 py-2 text-xs">
-                        Open certificate
-                      </a>
-                      <CopyButton
-                        text={`${appUrl}/bond/${createdBondId}?bondTxHash=${txHash}`}
-                        label="Copy bond link"
-                        className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-50 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
-                      />
-                      <CopyButton
-                        text={`${appUrl}/certificate/${createdBondId}`}
-                        label="Copy certificate link"
-                        className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-50 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
-                      />
-                    </div>
+                {launchGuidance.warnings.length ? (
+                  <div className="mt-4 space-y-2">
+                    {launchGuidance.warnings.map((warning) => (
+                      <ErrorBox key={warning} message={warning} />
+                    ))}
+                    <WarningBox message="Once a breach is flagged onchain, refund is permanently locked — even if the creator buys back above floor later." />
                   </div>
                 ) : null}
               </div>
             ) : null}
-          </div>
-        </div>
 
-        <div className="space-y-4 xl:sticky xl:top-28">
-          <div className="surface p-6">
-            <div className="review-kicker">Case register</div>
-            <div className="mt-5 data-list">
-              <DataRow label="Vault address" value={vaultAddress || "not configured"} mono />
-              <DataRow label="Minimum bond" value={`${minBondLabel} BNB`} />
-              <DataRow label="Connected wallet" value={walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "not connected"} />
-              <DataRow label="Launch parse" value={launchEvidence ? "verified" : "pending"} />
-              <DataRow label="Compilation" value={compiled?.rule ? "ready" : "pending"} />
+            {launchChecksError ? <ErrorBox message={launchChecksError} /> : null}
+
+            <div className="mt-8 border-t border-[var(--border)] pt-6">
+              <div className="flex items-center gap-2">
+                <span className={`live-dot live-dot--${oathReady ? "lime" : "yellow"}`} />
+                <span className="label-mono">Step 2 / Compile your oath</span>
+              </div>
+
+              <div className="mt-4 grid gap-4">
+                <div>
+                  <label className="label-mono mb-2 block">Oath text</label>
+                  <textarea
+                    value={oathText}
+                    onChange={(event) => handleOathTextChange(event.target.value)}
+                    className="text-sm"
+                  />
+                  <p className="mt-2 font-mono text-[11px] text-[var(--fg-muted)]">
+                    AI isolates the single enforceable sentence. Social-only lines are dropped.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="label-mono mb-2 block">Declared creator wallets</label>
+                  <textarea
+                    value={declaredWalletsInput}
+                    onChange={(event) => setDeclaredWalletsInput(event.target.value)}
+                    placeholder="0xcreator..., 0xmultisig..."
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button className="btn-hazard" onClick={runClassifier} disabled={loading} type="button">
+                    {loading ? "Compiling…" : "Compile oath"}
+                  </button>
+                  <button className="btn-outline" onClick={connectWallet} type="button">
+                    {walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : "Connect wallet"}
+                  </button>
+                </div>
+                {classifierError ? <ErrorBox message={classifierError} /> : null}
+              </div>
+            </div>
+
+            <div className="mt-8 border-t border-[var(--border)] pt-6">
+              <div className="flex items-center gap-2">
+                <span className={`live-dot live-dot--${canSubmit ? "yellow" : "muted"}`} />
+                <span className="label-mono">Step 3 / Stake the bond</span>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+                <div>
+                  <label className="label-mono mb-2 block">Bond amount (BNB)</label>
+                  <input
+                    value={bondAmountBnb}
+                    onChange={(event) => setBondAmountBnb(event.target.value)}
+                    placeholder="0.003"
+                    className="font-mono"
+                  />
+                  <p className="mt-2 font-mono text-[11px] text-[var(--fg-muted)]">
+                    Minimum on current vault: {minBondLabel} BNB
+                  </p>
+                </div>
+                <button
+                  className="btn-hazard whitespace-nowrap"
+                  onClick={submitBond}
+                  disabled={!canSubmit}
+                  type="button"
+                >
+                  {submitLoading ? "Submitting…" : "Create bond onchain"}
+                </button>
+              </div>
+
+              <p className="mt-4 font-mono text-[11px] leading-relaxed text-[var(--fg-muted)]">
+                Demo note: during the hackathon period, the 20% protocol leg routes to an author-controlled treasury. Production deployments should point it at a burn, DAO, or multisig.
+              </p>
+
+              {submitError ? <ErrorBox message={submitError} /> : null}
+
+              {txHash ? (
+                <div className="mt-5 rounded border border-[rgba(57,255,20,0.35)] bg-[rgba(57,255,20,0.08)] p-5">
+                  <div className="flex items-center gap-2">
+                    <span className="live-dot live-dot--lime" />
+                    <span className="label-mono text-[var(--lime)]">Bond submitted</span>
+                  </div>
+                  <div className="mt-3 break-all font-mono text-xs text-white/85">{txHash}</div>
+                  {createdBondId ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="font-mono text-sm text-white/90">
+                        Bond ID <span className="text-[var(--yellow)]">{createdBondId}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={`/bond/${createdBondId}?bondTxHash=${txHash}`} className="btn-outline text-[11px]">
+                          Open proof page <ArrowUpRight className="h-3 w-3" />
+                        </Link>
+                        <Link href={`/certificate/${createdBondId}`} className="btn-outline text-[11px]">
+                          Open certificate <ArrowUpRight className="h-3 w-3" />
+                        </Link>
+                        <CopyButton
+                          text={`${appUrl}/bond/${createdBondId}?bondTxHash=${txHash}`}
+                          label="Copy bond link"
+                          className="btn-outline text-[11px]"
+                        />
+                        <CopyButton
+                          text={`${appUrl}/certificate/${createdBondId}`}
+                          label="Copy cert link"
+                          className="btn-outline text-[11px]"
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
 
-          <div className="surface p-6">
-            <div className="review-kicker">Compiled rule</div>
-            {compiled?.rule ? (
-              <div className="mt-5">
-                <div className="data-list">
-                  <DataRow label="Provider" value={`${compiled.provider === "dgrid" ? "DGrid" : "Deterministic fallback"}${compiled.model ? ` · ${compiled.model}` : ""}`} />
-                  <DataRow label="Rule type" value={compiled.rule.type} />
-                  <DataRow label="Declared floor" value={compiled.rule.declaredRetainedBalance} mono />
-                  <DataRow label="Expires in" value={formatDurationLabel(compiled.rule.expiresInSeconds)} />
-                  <DataRow label="Compiled from" value={compiled.selectedPromiseText ?? "No enforceable segment selected"} />
-                </div>
-                <p className="mt-5 text-sm leading-7 text-zinc-400">{compiled.humanSummary}</p>
-                {compiled.compileWarnings.length ? (
-                  <div className="mt-4 space-y-2">
-                    {compiled.compileWarnings.map((warning) => (
-                      <div key={warning} className="rounded-[0.9rem] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                        {warning}
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
+          <aside className="flex flex-col gap-5">
+            <div className="hazard-card p-6">
+              <div className="label-mono">Case register</div>
+              <div className="mt-4 space-y-3">
+                <DataRow label="Vault" value={vaultAddress ? `${vaultAddress.slice(0, 8)}…${vaultAddress.slice(-6)}` : "not configured"} mono />
+                <DataRow label="Min bond" value={`${minBondLabel} BNB`} />
+                <DataRow label="Wallet" value={walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : "not connected"} mono />
+                <DataRow label="Launch parse" value={launchReady ? "verified" : "pending"} accent={launchReady ? "lime" : "muted"} />
+                <DataRow label="Oath compile" value={oathReady ? "ready" : "pending"} accent={oathReady ? "lime" : "muted"} />
               </div>
-            ) : (
-              <p className="mt-5 text-sm leading-7 text-zinc-500">Compile the creator text to generate the exact rule the vault will enforce.</p>
-            )}
-          </div>
+            </div>
 
-          <ClassifierCard title="Enforceable sentence" tone="green" items={grouped.enforceable} />
-          <ClassifierCard title="Social-only statements" tone="amber" items={grouped.social} />
-          <ClassifierCard title="Rejected statements" tone="red" items={grouped.rejected} />
+            <div className="hazard-card p-6">
+              <div className="label-mono">Compiled rule</div>
+              {compiled?.rule ? (
+                <div className="mt-4 space-y-3">
+                  <DataRow
+                    label="Provider"
+                    value={`${compiled.provider === "dgrid" ? "DGrid" : "Deterministic"}${compiled.model ? ` · ${compiled.model}` : ""}`}
+                  />
+                  <DataRow label="Rule" value={compiled.rule.type} mono />
+                  <DataRow label="Floor" value={compiled.rule.declaredRetainedBalance} mono />
+                  <DataRow label="Expires in" value={formatDurationLabel(compiled.rule.expiresInSeconds)} />
+                  <div className="rounded border border-[var(--border)] bg-white/[0.015] p-3">
+                    <div className="label-mono">Selected sentence</div>
+                    <div className="mt-2 text-xs leading-relaxed text-white/80">
+                      {compiled.selectedPromiseText ?? "No enforceable segment selected"}
+                    </div>
+                  </div>
+                  <p className="text-xs leading-relaxed text-white/70">{compiled.humanSummary}</p>
+                  {compiled.compileWarnings.length ? (
+                    <div className="space-y-2">
+                      {compiled.compileWarnings.map((warning) => (
+                        <WarningBox key={warning} message={warning} />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-4 text-xs leading-relaxed text-white/70">
+                  Compile your oath to see the exact rule the vault will enforce.
+                </p>
+              )}
+            </div>
+
+            <ClassifierCard title="Enforceable" tone="lime" items={grouped.enforceable} />
+            <ClassifierCard title="Social-only" tone="yellow" items={grouped.social} />
+            <ClassifierCard title="Rejected" tone="red" items={grouped.rejected} />
+          </aside>
         </div>
+      </section>
+
+      <div className="mt-14 warning-stripes warning-stripes--thin" />
+    </div>
+  );
+}
+
+function StepStrip({
+  launchReady,
+  oathReady,
+  walletReady,
+}: {
+  launchReady: boolean;
+  oathReady: boolean;
+  walletReady: boolean;
+}) {
+  const steps: Array<{ label: string; done: boolean }> = [
+    { label: "Parse launch", done: launchReady },
+    { label: "Compile oath", done: oathReady },
+    { label: "Connect wallet", done: walletReady },
+  ];
+  return (
+    <div className="flex flex-wrap gap-2">
+      {steps.map((step, index) => (
+        <div
+          key={step.label}
+          className="flex items-center gap-2 rounded border border-[var(--border)] bg-white/[0.015] px-3 py-2"
+        >
+          <span className={`live-dot live-dot--${step.done ? "lime" : "muted"}`} />
+          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-white/80">
+            {String(index + 1).padStart(2, "0")} / {step.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Fact({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="rounded border border-[var(--border)] bg-white/[0.015] p-3">
+      <div className="label-mono">{label}</div>
+      <div className={`mt-1 break-all ${mono ? "font-mono text-xs" : "text-sm"} text-white/90`}>
+        {value}
       </div>
-    </section>
-  );
-}
-
-function NarrativeCell({ label, body }: { label: string; body: string }) {
-  return (
-    <div className="fact-cell">
-      <div className="fact-label">{label}</div>
-      <div className="fact-value">{body}</div>
-    </div>
-  );
-}
-
-function EvidenceRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="fact-cell">
-      <div className="fact-label">{label}</div>
-      <div className={`fact-value break-all ${mono ? "font-mono text-xs sm:text-sm" : ""}`}>{value}</div>
-    </div>
-  );
-}
-
-function Guardrail({ body, accent = false }: { body: string; accent?: boolean }) {
-  return (
-    <div className={`rounded-[1rem] border p-4 text-sm leading-7 ${accent ? "border-amber-500/20 bg-amber-500/10 text-amber-100" : "border-white/8 bg-white/[0.025] text-zinc-300"}`}>
-      {body}
     </div>
   );
 }
@@ -671,15 +724,47 @@ function DataRow({
   label,
   value,
   mono = false,
+  accent,
 }: {
   label: string;
   value: string;
   mono?: boolean;
+  accent?: "lime" | "muted";
 }) {
   return (
-    <div className="data-row">
-      <div className="data-row-label">{label}</div>
-      <div className={`data-row-value ${mono ? "font-mono text-xs sm:text-sm" : ""}`}>{value}</div>
+    <div className="flex items-start justify-between gap-4">
+      <span className="label-mono">{label}</span>
+      <span
+        className={`text-right text-xs ${mono ? "font-mono" : ""} ${
+          accent === "lime" ? "text-[var(--lime)]" : accent === "muted" ? "text-white/60" : "text-white/90"
+        }`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function ErrorBox({ message }: { message: string }) {
+  return (
+    <div className="mt-3 rounded border border-[rgba(255,46,46,0.35)] bg-[rgba(255,46,46,0.08)] px-4 py-3">
+      <div className="flex items-center gap-2">
+        <span className="live-dot live-dot--red" />
+        <span className="label-mono text-[var(--red)]">Error</span>
+      </div>
+      <div className="mt-2 break-words font-mono text-xs text-white/85">{message}</div>
+    </div>
+  );
+}
+
+function WarningBox({ message }: { message: string }) {
+  return (
+    <div className="rounded border border-[var(--yellow-border)] bg-[var(--yellow-soft)] px-4 py-3">
+      <div className="flex items-center gap-2">
+        <span className="live-dot live-dot--yellow" />
+        <span className="label-mono text-[var(--yellow)]">Heads up</span>
+      </div>
+      <div className="mt-2 break-words text-xs leading-relaxed text-white/90">{message}</div>
     </div>
   );
 }
@@ -690,27 +775,38 @@ function ClassifierCard({
   items,
 }: {
   title: string;
-  tone: "green" | "amber" | "red";
+  tone: "lime" | "yellow" | "red";
   items: PromiseItem[];
 }) {
-  const palette = {
-    green: "border-emerald-500/20 bg-emerald-500/10 text-emerald-100",
-    amber: "border-amber-500/20 bg-amber-500/10 text-amber-100",
-    red: "border-red-500/20 bg-red-500/10 text-red-100",
-  }[tone];
+  const color = tone === "lime" ? "var(--lime)" : tone === "yellow" ? "var(--yellow)" : "var(--red)";
 
   return (
-    <div className="surface rounded-[1.5rem] p-6">
-      <div className="review-kicker">{title}</div>
-      <div className="mt-4 space-y-3">
+    <div className="hazard-card p-6">
+      <div className="flex items-center gap-2">
+        <span className={`live-dot live-dot--${tone}`} />
+        <span className="label-mono" style={{ color }}>{title}</span>
+        <span className="ml-auto font-mono text-[11px] text-[var(--fg-muted)]">
+          {items.length}
+        </span>
+      </div>
+      <div className="mt-4 space-y-2">
         {items.length === 0 ? (
-          <div className="rounded-[1rem] border border-white/8 bg-white/[0.02] p-4 text-sm text-zinc-500">No items in this bucket yet.</div>
+          <div className="rounded border border-[var(--border)] bg-white/[0.015] px-3 py-2 text-xs text-white/50">
+            None.
+          </div>
         ) : (
           items.map((item) => (
-            <div key={item.text} className={`rounded-[1rem] border p-4 text-sm ${palette}`}>
-              <div className="font-medium">{item.text}</div>
-              <div className="mt-2 leading-7 opacity-90">{item.reason}</div>
-              {item.suggestedRewrite ? <div className="mt-2 font-mono text-xs opacity-80">Rewrite: {item.suggestedRewrite}</div> : null}
+            <div
+              key={item.text}
+              className="rounded border border-[var(--border)] bg-white/[0.015] p-3"
+            >
+              <div className="text-xs leading-relaxed text-white/90">{item.text}</div>
+              <div className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-[var(--fg-muted)]">
+                {item.reason}
+              </div>
+              {item.suggestedRewrite ? (
+                <div className="mt-2 font-mono text-[11px] text-white/70">Rewrite: {item.suggestedRewrite}</div>
+              ) : null}
             </div>
           ))
         )}

@@ -37,6 +37,7 @@ export const archivedProof = {
 };
 
 export type ShowcaseBond = LiveBondRecord & {
+  currentBondAmountBnb?: string;
   bondTxHash?: string;
   slashTxHash?: string;
   refundTxHash?: string;
@@ -62,7 +63,7 @@ const staticShowcaseBond: ShowcaseBond = {
   status: "SLASHED",
   expiresAtIso: "2026-04-20T20:55:14.000Z",
   launchTxHash: showcaseProof.launchTxHash,
-  notes: "Live BNB mainnet bond on the final vault that was launched, bonded, breached, flagged by the Rug Hunter Agent, and ultimately slashed by a third-party hunter in the permissionless race.",
+  notes: "Verified BNB mainnet proof from the final vault: launched, bonded, breached, flagged by the Rug Hunter Agent, and ultimately slashed by a third-party hunter in the permissionless race.",
   bondTxHash: showcaseProof.bondTxHash,
   slashTxHash: showcaseProof.slashTxHash,
 };
@@ -80,7 +81,7 @@ const archivedShowcaseBond: ShowcaseBond = {
   status: "SLASHED",
   expiresAtIso: "2026-04-19T20:59:18.000Z",
   launchTxHash: archivedProof.launchTxHash,
-  notes: "Archived first-pass mainnet proof from the legacy vault. Kept in the directory as real history, not the active audited showcase.",
+  notes: "Archived first-pass mainnet proof from the legacy vault. Kept in the directory as real history, not the active verified proof set.",
   bondTxHash: archivedProof.bondTxHash,
   slashTxHash: archivedProof.slashTxHash,
 };
@@ -98,17 +99,43 @@ const staticRefundBond: ShowcaseBond = {
   status: "REFUNDED",
   expiresAtIso: "2026-04-20T21:08:35.000Z",
   launchTxHash: refundProof.launchTxHash,
-  notes: "Live BNB mainnet bond on the final vault that stayed above floor, survived the hunter window, and refunded cleanly to the creator.",
+  notes: "Verified BNB mainnet proof from the final vault that stayed above floor, survived the hunter window, and refunded cleanly to the creator.",
   bondTxHash: refundProof.bondTxHash,
   refundTxHash: refundProof.refundTxHash,
 };
 
+async function overlayCurrentVaultState(fallback: ShowcaseBond): Promise<ShowcaseBond> {
+  const live = await getLiveBondById(fallback.id);
+  if (!live) {
+    return fallback;
+  }
+
+  return {
+    ...fallback,
+    creator: live.creator,
+    tokenAddress: live.tokenAddress,
+    declaredCreatorWallets: live.declaredCreatorWallets,
+    declaredFloor: live.declaredFloor,
+    currentBalance: live.currentBalance,
+    status: live.status,
+    expiresAtIso: live.expiresAtIso,
+    launchTxHash: live.launchTxHash,
+    tokenName: live.tokenName,
+    ticker: live.ticker,
+    currentBondAmountBnb: live.bondAmountBnb,
+    notes: fallback.notes,
+    bondTxHash: fallback.bondTxHash,
+    slashTxHash: fallback.slashTxHash,
+    refundTxHash: fallback.refundTxHash,
+  };
+}
+
 export async function getPrimaryShowcaseBond(): Promise<ShowcaseBond | null> {
-  return staticShowcaseBond;
+  return overlayCurrentVaultState(staticShowcaseBond);
 }
 
 export async function getRefundShowcaseBond(): Promise<ShowcaseBond | null> {
-  return staticRefundBond;
+  return overlayCurrentVaultState(staticRefundBond);
 }
 
 export async function getCurrentMainnetProofs(): Promise<ShowcaseBond[]> {
@@ -127,8 +154,8 @@ export async function getBrokenOathBonds(): Promise<ShowcaseBond[]> {
 }
 
 export async function getBondForPage(id: string): Promise<ShowcaseBond | undefined> {
-  if (id === showcaseProof.bondId) return staticShowcaseBond;
-  if (id === refundProof.bondId) return staticRefundBond;
+  if (id === showcaseProof.bondId) return (await getPrimaryShowcaseBond()) ?? undefined;
+  if (id === refundProof.bondId) return (await getRefundShowcaseBond()) ?? undefined;
   if (id === archivedProof.bondId) return archivedShowcaseBond;
 
   const live = await getLiveBondById(id);
@@ -137,32 +164,4 @@ export async function getBondForPage(id: string): Promise<ShowcaseBond | undefin
   }
 
   return live;
-}
-
-export async function getPublicHunterFeed(): Promise<PublicHunterFeedEntry[]> {
-  const live = await getPrimaryShowcaseBond();
-  if (!live) {
-    return [];
-  }
-
-  return [
-    {
-      id: "watching-live-bond-0",
-      label: "watching bond #0 on BNB mainnet",
-      txHash: showcaseProof.bondTxHash,
-      createdAtIso: showcaseProof.bondedAtIso,
-    },
-    {
-      id: "live-flag-bond-0",
-      label: `Rug Hunter Agent flagged a floor breach for bond #0 (${live.ticker})`,
-      txHash: showcaseProof.breachFlagTxHash,
-      createdAtIso: showcaseProof.breachFlaggedAtIso,
-    },
-    {
-      id: "live-slash-bond-0",
-      label: "bond #0 was slashed by a public hunter after the breach flag",
-      txHash: showcaseProof.slashTxHash,
-      createdAtIso: showcaseProof.slashedAtIso,
-    },
-  ];
 }

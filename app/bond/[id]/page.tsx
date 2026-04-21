@@ -59,7 +59,7 @@ export default async function BondDetailPage({
               </div>
             </div>
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5">
-              <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live state</div>
+              <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Bond state</div>
               <div className="mt-4 grid gap-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-zinc-500">Bond size</span>

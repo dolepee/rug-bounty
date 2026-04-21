@@ -4,6 +4,8 @@ import { getCurrentMainnetProofs, refundProof, showcaseProof } from "@/lib/data/
 import { getHunterRuntimeStatus } from "@/lib/data/hunter-status";
 import { getConfiguredVaultAddress } from "@/lib/data/live-bonds";
 
+export const dynamic = "force-dynamic";
+
 const proofModel = [
   {
     label: "Vault-enforced",
@@ -30,9 +32,9 @@ export default async function JudgeModePage() {
     <section className="section-shell py-12">
       <div className="mb-8 max-w-4xl">
         <div className="font-mono text-xs uppercase tracking-[0.22em] text-zinc-500">Judge mode</div>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight">A trust primitive for Four.Meme, with live proof.</h1>
+        <h1 className="mt-2 text-4xl font-semibold tracking-tight">A trust primitive for Four.Meme, with verified mainnet proof.</h1>
         <p className="mt-4 text-sm leading-7 text-zinc-400">
-          Four.Meme makes launches fast. RugBounty adds the missing trust layer: one public, slashable promise about the creator&apos;s own bag. This page compresses the proof set into one surface: live vault, both mainnet outcomes, hunter runtime, and the exact proof model.
+          Four.Meme makes launches fast. RugBounty adds the missing trust layer: one public, slashable promise about the creator&apos;s own bag. This page compresses the proof set into one surface: the verified vault, both mainnet outcomes, hunter runtime, and the exact proof model.
         </p>
       </div>
 
@@ -161,6 +163,28 @@ export default async function JudgeModePage() {
         ) : null}
       </div>
 
+      <div className="mt-8 surface rounded-3xl p-6">
+        <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Proof sourcing</div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+            <div className="font-semibold text-zinc-100">Onchain enforced</div>
+            Slash, refund, declared wallets, floor, and expiry come from the verified vault.
+          </div>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+            <div className="font-semibold text-zinc-100">Verified proof set</div>
+            The FSLH and FRFD tx chains are curated mainnet proof links for the submission narrative.
+          </div>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+            <div className="font-semibold text-zinc-100">App verified</div>
+            The app parses real Four.Meme TokenCreate launches before allowing the official bond flow.
+          </div>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+            <div className="font-semibold text-zinc-100">Runtime status</div>
+            Hunter status is derived from the watcher snapshot or feed when configured, not from seeded showcase rows.
+          </div>
+        </div>
+      </div>
+
       <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="surface rounded-3xl p-6">
           <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Why Four.Meme specifically</div>
@@ -178,7 +202,7 @@ export default async function JudgeModePage() {
           <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Demo budget note</div>
           <div className="mt-4 space-y-3 text-sm text-zinc-300">
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
-              The live proof bonds are intentionally small because they were cycled under hackathon budget on BNB mainnet.
+              The verified proof bonds are intentionally small because they were cycled under hackathon budget on BNB mainnet.
             </div>
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
               That is a demo constraint, not a product constraint. The primitive scales independently of the amount used in the proof loops.

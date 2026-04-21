@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { getDirectoryBonds, refundProof, showcaseProof } from "@/lib/data/showcase";
 
+export const dynamic = "force-dynamic";
+
 export default async function DirectoryPage() {
   const bonds = await getDirectoryBonds();
 
   return (
     <section className="section-shell py-12">
       <div className="mb-8">
-        <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live proof directory</div>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight">Real bonds, live floor checks, no padded fixtures</h1>
+        <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Verified proof directory</div>
+        <h1 className="mt-2 text-4xl font-semibold tracking-tight">Verified mainnet proof loops, with static proof links and current vault context where available</h1>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-400">
-          This directory only surfaces real proof loops. Each row must tie back to a real Four.Meme launch, a real bond, and an onchain outcome.
+          This directory only surfaces real proof loops. Each row must tie back to a real Four.Meme launch, a real bond, and an onchain outcome. The tx proof links are curated mainnet evidence, not synthetic fixtures.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -24,8 +26,8 @@ export default async function DirectoryPage() {
               <div>
                 <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">{bond.tokenName}</div>
                 <div className="mt-2 text-2xl font-semibold">{bond.ticker}</div>
-                {bond.id === showcaseProof.bondId ? <div className="mt-2 text-xs font-mono uppercase tracking-[0.2em] text-amber-300">Live BNB mainnet slash</div> : null}
-                {bond.id === refundProof.bondId ? <div className="mt-2 text-xs font-mono uppercase tracking-[0.2em] text-emerald-300">Live BNB mainnet refund</div> : null}
+                {bond.id === showcaseProof.bondId ? <div className="mt-2 text-xs font-mono uppercase tracking-[0.2em] text-amber-300">Verified BNB mainnet slash</div> : null}
+                {bond.id === refundProof.bondId ? <div className="mt-2 text-xs font-mono uppercase tracking-[0.2em] text-emerald-300">Verified BNB mainnet refund</div> : null}
               </div>
               <div className={`rounded-full px-3 py-1 text-xs font-medium ${
                 bond.status === "SLASHED"

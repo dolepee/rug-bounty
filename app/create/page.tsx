@@ -19,6 +19,8 @@ type CompileResponse = {
   model: string | null;
   classified: PromiseItem[];
   enforceableCount: number;
+  selectedPromiseText: string | null;
+  compileWarnings: string[];
   humanSummary: string;
   rule: {
     type: "CREATOR_WALLET_FLOOR";
@@ -50,14 +52,6 @@ const minBondWei = parseEther("0.003");
 const minBondLabel = formatEther(minBondWei);
 
 const initialText = `I will hold at least 1.05M tokens for 15 minutes.\nBinance listing soon.\nDaily updates.`;
-const initialManualLaunch = {
-  token: "",
-  creator: "",
-  name: "",
-  symbol: "",
-  launchTime: "",
-  tokenDecimals: "18",
-};
 const minFloorBps = 10n;
 
 type LaunchChecks = {
@@ -91,8 +85,6 @@ export default function CreateBondPage() {
   const [classifierError, setClassifierError] = useState<string | null>(null);
   const [parserResult, setParserResult] = useState<ParsedLaunchEvidence | null>(null);
   const [parserError, setParserError] = useState<string | null>(null);
-  const [manualLaunchInput, setManualLaunchInput] = useState(initialManualLaunch);
-  const [useManualLaunch, setUseManualLaunch] = useState(false);
   const [launchChecks, setLaunchChecks] = useState<LaunchChecks | null>(null);
   const [launchChecksError, setLaunchChecksError] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<Address | null>(null);
@@ -100,42 +92,7 @@ export default function CreateBondPage() {
   const [createdBondId, setCreatedBondId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const manualLaunchEvidence = useMemo(() => {
-    if (!launchTxHash.trim()) {
-      return null;
-    }
-    if (!isAddress(manualLaunchInput.token) || !isAddress(manualLaunchInput.creator)) {
-      return null;
-    }
-    const launchTime = Number(manualLaunchInput.launchTime);
-    const tokenDecimals = Number(manualLaunchInput.tokenDecimals);
-    if (!Number.isFinite(launchTime) || launchTime <= 0 || !Number.isInteger(tokenDecimals) || tokenDecimals < 0 || tokenDecimals > 36) {
-      return null;
-    }
-
-    return {
-      token: getAddress(manualLaunchInput.token),
-      creator: getAddress(manualLaunchInput.creator),
-      requestId: "manual-launch-evidence",
-      name: manualLaunchInput.name || "Manual Four.Meme launch",
-      symbol: manualLaunchInput.symbol || "MANUAL",
-      totalSupply: "0",
-      launchTime: String(Math.floor(launchTime)),
-      launchFee: "0",
-      tokenDecimals,
-      blockNumber: "0",
-      txHash: launchTxHash.trim() as Hex,
-      tokenManager: "0x0000000000000000000000000000000000000000" as Address,
-      rawLogIndex: -1,
-    } satisfies ParsedLaunchEvidence;
-  }, [launchTxHash, manualLaunchInput]);
-
-  const launchEvidence = useMemo(() => {
-    if (useManualLaunch) {
-      return manualLaunchEvidence;
-    }
-    return parserResult;
-  }, [manualLaunchEvidence, parserResult, useManualLaunch]);
+  const launchEvidence = useMemo(() => parserResult, [parserResult]);
 
   async function runClassifier() {
     setLoading(true);
@@ -175,7 +132,6 @@ export default function CreateBondPage() {
       return;
     }
     setParserResult(data.parsed as ParsedLaunchEvidence);
-    setUseManualLaunch(false);
     setDeclaredWalletsInput((current) => current || (data.parsed.creator as string));
   }
 
@@ -305,7 +261,7 @@ export default function CreateBondPage() {
       return;
     }
     if (!launchEvidence) {
-      setSubmitError("Parse a real Four.Meme launch transaction first, or switch to manual launch fields.");
+      setSubmitError("Bond creation is gated behind a successful real Four.Meme launch parse.");
       return;
     }
     if (!compiled?.rule) {
@@ -443,64 +399,10 @@ export default function CreateBondPage() {
             </div>
 
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Launch evidence mode</div>
-                <label className="inline-flex items-center gap-2 text-sm text-zinc-300">
-                  <input
-                    type="checkbox"
-                    checked={useManualLaunch}
-                    onChange={(event) => {
-                      setUseManualLaunch(event.target.checked);
-                      if (event.target.checked && !declaredWalletsInput && manualLaunchInput.creator) {
-                        setDeclaredWalletsInput(manualLaunchInput.creator);
-                      }
-                    }}
-                  />
-                  Use manual launch fields
-                </label>
-              </div>
+              <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Official bond flow</div>
               <p className="mt-3 text-sm leading-7 text-zinc-400">
-                If RPC parsing fails, you can manually supply the token address, creator wallet, and launch timestamp while still keeping the original Four.Meme launch tx hash.
+                Bond creation is hard-gated to a successful Four.Meme <span className="font-mono">TokenCreate</span> parse. If parsing fails, the fix is to retry with the real launch tx or repair RPC access, not to bypass launch authenticity with manual token fields.
               </p>
-
-              {useManualLaunch ? (
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <input
-                    value={manualLaunchInput.token}
-                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, token: event.target.value }))}
-                    placeholder="Token address"
-                    className="font-mono"
-                  />
-                  <input
-                    value={manualLaunchInput.creator}
-                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, creator: event.target.value }))}
-                    placeholder="Creator wallet"
-                    className="font-mono"
-                  />
-                  <input
-                    value={manualLaunchInput.name}
-                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, name: event.target.value }))}
-                    placeholder="Token name"
-                  />
-                  <input
-                    value={manualLaunchInput.symbol}
-                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, symbol: event.target.value }))}
-                    placeholder="Ticker symbol"
-                  />
-                  <input
-                    value={manualLaunchInput.launchTime}
-                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, launchTime: event.target.value }))}
-                    placeholder="Launch timestamp (unix seconds)"
-                    className="font-mono"
-                  />
-                  <input
-                    value={manualLaunchInput.tokenDecimals}
-                    onChange={(event) => setManualLaunchInput((current) => ({ ...current, tokenDecimals: event.target.value }))}
-                    placeholder="Token decimals"
-                    className="font-mono"
-                  />
-                </div>
-              ) : null}
             </div>
 
             {launchEvidence ? (
@@ -611,7 +513,7 @@ export default function CreateBondPage() {
                   <div className="mt-2">
                     Bond ID: <span className="font-mono">{createdBondId}</span>
                     <a href={`/bond/${createdBondId}?bondTxHash=${txHash}`} className="ml-3 text-emerald-50 underline underline-offset-4">
-                      Open live bond page
+                      Open proof page
                     </a>
                     <a href={`/certificate/${createdBondId}`} className="ml-3 text-emerald-50 underline underline-offset-4">
                       Open certificate
@@ -664,11 +566,24 @@ export default function CreateBondPage() {
                   <span className="text-zinc-500">Expires in</span>
                   <span>{formatDurationLabel(compiled.rule.expiresInSeconds)}</span>
                 </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-zinc-500">Compiled from</span>
+                  <span className="text-right">{compiled.selectedPromiseText ?? "No enforceable segment selected"}</span>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-zinc-500">Vault address</span>
                   <span className="font-mono text-xs">{vaultAddress || "not configured"}</span>
                 </div>
                 <p className="pt-3 text-zinc-400">{compiled.humanSummary}</p>
+                {compiled.compileWarnings.length ? (
+                  <div className="space-y-2 pt-2">
+                    {compiled.compileWarnings.map((warning) => (
+                      <div key={warning} className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+                        {warning}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <p className="mt-4 text-sm text-zinc-500">Compile an oath to get a bondable rule.</p>

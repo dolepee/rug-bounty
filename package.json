@@ -7,7 +7,7 @@
     "build": "node ./node_modules/next/dist/bin/next build",
     "start": "node ./node_modules/next/dist/bin/next start",
     "lint": "eslint .",
-    "test": "node --test --test-concurrency=1 test/**/*.test.js",
+    "test": "node --import tsx --test --test-concurrency=1 test/**/*.test.js test/**/*.test.ts",
     "compile:contract": "npx solcjs --bin --abi -o out contracts/RugBountyVault.sol",
     "agent:dev": "node agent/index.mjs",
     "wallets:generate": "node scripts/generate-wallets.mjs",

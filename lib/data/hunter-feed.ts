@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { getPublicHunterFeed, type PublicHunterFeedEntry } from "@/lib/data/showcase";
+import type { PublicHunterFeedEntry } from "@/lib/data/showcase";
 
 const DEFAULT_FEED_PATH = path.join(process.cwd(), "agent", "feed.json");
 
@@ -13,14 +13,12 @@ function sortFeedEntries(entries: PublicHunterFeedEntry[]) {
 }
 
 export async function readHunterFeed(): Promise<PublicHunterFeedEntry[]> {
-  const showcaseEntries = await getPublicHunterFeed();
   try {
     const raw = await fs.readFile(getHunterFeedPath(), "utf8");
     const parsed = JSON.parse(raw) as PublicHunterFeedEntry[];
-    const merged = [...parsed, ...showcaseEntries];
     const seen = new Set<string>();
     return sortFeedEntries(
-      merged.filter((entry) => {
+      parsed.filter((entry) => {
         if (seen.has(entry.id)) {
           return false;
         }
@@ -29,6 +27,6 @@ export async function readHunterFeed(): Promise<PublicHunterFeedEntry[]> {
       }),
     );
   } catch {
-    return sortFeedEntries(showcaseEntries);
+    return [];
   }
 }

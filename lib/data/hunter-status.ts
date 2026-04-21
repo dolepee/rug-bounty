@@ -1,7 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { readHunterFeed } from "@/lib/data/hunter-feed";
-import { showcaseProof } from "@/lib/data/showcase";
 
 export type HunterRuntimeStatus = {
   runtime: "vps-pm2";
@@ -18,8 +17,14 @@ export type HunterRuntimeStatus = {
 const onlineWindowMs = 24 * 60 * 60 * 1000;
 const defaultStatusPath = path.join(process.cwd(), "agent", "status.runtime.json");
 const cleanEnv = (value?: string | null) => value?.trim() || undefined;
-const configuredVaultAddress = cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) || cleanEnv(process.env.RUG_BOUNTY_VAULT_ADDRESS) || null;
-const remoteStatusUrl = cleanEnv(process.env.RUG_HUNTER_STATUS_URL) || "https://16.16.120.1.sslip.io/rug-hunter/status.json";
+
+function getConfiguredVaultAddress() {
+  return cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) || cleanEnv(process.env.RUG_BOUNTY_VAULT_ADDRESS) || null;
+}
+
+function getRemoteStatusUrl() {
+  return cleanEnv(process.env.RUG_HUNTER_STATUS_URL) || null;
+}
 
 type HunterStatusSnapshot = {
   runtime?: "vps-pm2";
@@ -41,6 +46,11 @@ function deriveRuntimeStatus(lastTickIso?: string | null, fallbackStatus?: "onli
 }
 
 async function readRemoteStatusSnapshot(): Promise<HunterStatusSnapshot | null> {
+  const remoteStatusUrl = getRemoteStatusUrl();
+  if (!remoteStatusUrl) {
+    return null;
+  }
+
   try {
     const response = await fetch(remoteStatusUrl, {
       cache: "no-store",
@@ -74,20 +84,21 @@ function deriveFeedFields(entries: Awaited<ReturnType<typeof readHunterFeed>>) {
   return {
     latest,
     resolvedBondId,
-    resolvedTxHash: resolvedEntry?.txHash ?? showcaseProof.slashTxHash,
+    resolvedTxHash: resolvedEntry?.txHash ?? null,
   };
 }
 
 export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
   const entries = await readHunterFeed();
   const { latest, resolvedBondId, resolvedTxHash } = deriveFeedFields(entries);
+  const configuredVaultAddress = getConfiguredVaultAddress();
 
   const remote = await readRemoteStatusSnapshot();
   if (remote) {
     return {
-      runtime: remote.runtime || "vps-pm2",
-      status: deriveRuntimeStatus(remote.lastTickIso, remote.status),
-      vaultAddress: remote.vaultAddress ?? configuredVaultAddress,
+        runtime: remote.runtime || "vps-pm2",
+        status: deriveRuntimeStatus(remote.lastTickIso, remote.status),
+        vaultAddress: remote.vaultAddress ?? configuredVaultAddress,
       lastTickIso: remote.lastTickIso ?? null,
       watchedBondIds: remote.watchedBondIds ?? [],
       lastEventLabel: latest?.label ?? (remote.lastTickIso ? "hunter heartbeat recorded" : null),

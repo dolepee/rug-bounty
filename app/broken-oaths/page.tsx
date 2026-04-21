@@ -1,6 +1,8 @@
 import { getBrokenOathBonds, showcaseProof } from "@/lib/data/showcase";
 import { bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 
+export const dynamic = "force-dynamic";
+
 export default async function BrokenOathsPage() {
   const broken = await getBrokenOathBonds();
 
@@ -21,7 +23,7 @@ export default async function BrokenOathsPage() {
               <div>
                 <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">{bond.tokenName}</div>
                 <div className="mt-2 text-2xl font-semibold">{bond.ticker}</div>
-                {bond.id === showcaseProof.bondId ? <div className="mt-2 text-xs font-mono uppercase tracking-[0.2em] text-amber-300">Live BNB mainnet slash</div> : null}
+                {bond.id === showcaseProof.bondId ? <div className="mt-2 text-xs font-mono uppercase tracking-[0.2em] text-amber-300">Verified BNB mainnet slash</div> : null}
               </div>
               <div className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-medium text-red-300">SLASHED</div>
             </div>

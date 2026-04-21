@@ -4,6 +4,8 @@ import { getCurrentMainnetProofs, getDirectoryBonds, showcaseProof, refundProof 
 import { getHunterRuntimeStatus } from "@/lib/data/hunter-status";
 import { bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 
+export const dynamic = "force-dynamic";
+
 const proofModel = [
   { label: "Vault-enforced", detail: "current-state floor slash / refund" },
   { label: "App-verified", detail: "Four.Meme TokenCreate parse" },
@@ -59,7 +61,7 @@ export default async function HomePage() {
             <div className="surface rounded-3xl p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live mainnet outcomes</div>
+                  <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Verified mainnet proof set</div>
                   <h2 className="mt-2 text-2xl font-semibold text-zinc-50">
                     Two outcomes are proven on BNB mainnet.
                   </h2>
@@ -107,7 +109,7 @@ export default async function HomePage() {
                       Four.Meme token page
                     </a>
                     <Link href={`/bond/${showcase.id}?bondTxHash=${showcaseProof.bondTxHash}`} className="button-secondary rounded-xl px-4 py-3 text-sm">
-                      Open live bond page
+                      Open proof page
                     </Link>
                   </div>
                 </div>
@@ -322,7 +324,7 @@ export default async function HomePage() {
       <section className="section-shell mt-14">
         <div className="mb-5 flex items-center justify-between">
           <div>
-            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live proof directory</div>
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Verified proof directory</div>
             <h2 className="mt-2 text-2xl font-semibold">Real launches, not seeded screenshots</h2>
           </div>
           <Link href="/directory" className="inline-flex items-center gap-2 text-sm text-amber-300 hover:text-amber-200">

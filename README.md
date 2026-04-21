@@ -31,7 +31,7 @@ Not claimed:
 - on-chain verification of historical Four.Meme launch events
 - during the hackathon demo period, `PROTOCOL_TREASURY` is author-controlled; production deployments should point the 20% protocol leg at a burn, DAO, or multisig
 
-## Live proof
+## Verified mainnet proof set
 
 The final-vault proof set has both mainnet outcomes:
 
@@ -64,7 +64,7 @@ Configured vault:
 - `0xe010a3457001a0a8a6f2e69cdc962e705dbdedea`
 
 Budget note:
-- these live proof bonds were intentionally kept small so the full mainnet loop could be cycled repeatedly under hackathon budget
+- these verified proof bonds were intentionally kept small so the full mainnet loop could be cycled repeatedly under hackathon budget
 - the primitive itself is not tied to small bond sizes
 
 Archived earlier proof:
@@ -77,13 +77,13 @@ Implemented:
 - `RugBountyVault.sol`
 - Four.Meme TokenManager2 launch parsing
 - DGrid-backed oath classification / compilation with deterministic fallback
-- browser-wallet `createBond` flow on `/create`
+- browser-wallet `createBond` flow on `/create`, gated behind a successful real Four.Meme parse
 - creator-balance / minimum-floor / recommended-floor guidance on `/create`
 - minute-based oath durations for faster refund-path demos
-- manual `resolveBond` and `refundAfterExpiry` actions on the live bond page
-- live bond detail / certificate / broken-oaths proof surfaces
+- manual `resolveBond` and `refundAfterExpiry` actions on the proof page
+- proof detail / certificate / broken-oaths surfaces
 - real certificate share-card render route at `/api/certificate/render`
-- public APIs aligned to the live showcase proof instead of mock rows
+- public APIs aligned to the verified proof set instead of mock rows
 - public hunter status route at `/api/hunter/status`
 - Rug Hunter Agent watcher and slash path
 - PM2 runtime config for persistent hunter deployment

@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { getAddress, isAddress, keccak256, parseEther, stringToHex, type Address, type Hex } from "viem";
 import { z } from "zod";
+import { parseTokenCreateFromTxHash } from "@/lib/fourmeme/token-create-events";
 import { rugBountyVaultAbi } from "@/lib/chain/rug-bounty";
 
 const minBondWei = parseEther("0.003");
 
 const schema = z.object({
-  token: z.string().refine((value) => isAddress(value), "Invalid token address."),
-  creator: z.string().refine((value) => isAddress(value), "Invalid creator address."),
   launchTxHash: z.string().startsWith("0x"),
-  launchTimestamp: z.coerce.number().int().positive(),
+  token: z.string().refine((value) => isAddress(value), "Invalid token address.").optional(),
+  creator: z.string().refine((value) => isAddress(value), "Invalid creator address.").optional(),
+  launchTimestamp: z.coerce.number().int().positive().optional(),
   declaredCreatorWallets: z.array(z.string()).min(1),
   oathText: z.string().min(1),
   declaredRetainedBalance: z.string().min(1),
@@ -17,14 +18,27 @@ const schema = z.object({
   bondAmountBnb: z.string().min(1),
 });
 
-export async function POST(request: Request) {
-  const body = schema.parse(await request.json());
+export async function buildCreateBondPayload(body: z.infer<typeof schema>, parser = parseTokenCreateFromTxHash) {
   const declaredCreatorWallets = body.declaredCreatorWallets.map((wallet) => {
     if (!isAddress(wallet)) {
       throw new Error(`Invalid declared wallet: ${wallet}`);
     }
     return getAddress(wallet);
   });
+  const parsed = await parser(body.launchTxHash as Hex);
+
+  if (body.token && getAddress(body.token) !== getAddress(parsed.token)) {
+    throw new Error("Submitted token address does not match the real Four.Meme TokenCreate event.");
+  }
+  if (body.creator && getAddress(body.creator) !== getAddress(parsed.creator)) {
+    throw new Error("Submitted creator address does not match the real Four.Meme TokenCreate event.");
+  }
+  if (body.launchTimestamp && BigInt(body.launchTimestamp) !== parsed.launchTime) {
+    throw new Error("Submitted launch timestamp does not match the real Four.Meme TokenCreate event.");
+  }
+  if (!declaredCreatorWallets.includes(getAddress(parsed.creator))) {
+    throw new Error("Declared creator wallets must include the creator wallet from the real Four.Meme launch.");
+  }
 
   const oathHash = keccak256(stringToHex(body.oathText));
   const rulesHash = keccak256(
@@ -38,20 +52,20 @@ export async function POST(request: Request) {
     ),
   );
 
-  const launchTimestamp = BigInt(body.launchTimestamp);
+  const launchTimestamp = parsed.launchTime;
   const expiresAt = launchTimestamp + BigInt(body.expiresInSeconds);
   const bondAmountWei = parseEther(body.bondAmountBnb);
 
   if (bondAmountWei < minBondWei) {
-    return NextResponse.json({ error: "Bond amount is below the current vault minimum." }, { status: 400 });
+    throw new Error("Bond amount is below the current vault minimum.");
   }
 
-  return NextResponse.json({
+  return {
     contract: {
       abi: rugBountyVaultAbi,
       functionName: "createBond",
       args: [
-        getAddress(body.token) as Address,
+        getAddress(parsed.token) as Address,
         body.launchTxHash as Hex,
         launchTimestamp.toString(),
         declaredCreatorWallets,
@@ -63,11 +77,29 @@ export async function POST(request: Request) {
       valueWei: bondAmountWei.toString(),
     },
     proof: {
-      creator: getAddress(body.creator),
+      creator: getAddress(parsed.creator),
       declaredCreatorWallets,
       ruleType: "CREATOR_WALLET_FLOOR",
       oathHash,
       rulesHash,
+      launchProof: {
+        token: getAddress(parsed.token),
+        creator: getAddress(parsed.creator),
+        launchTimestamp: parsed.launchTime.toString(),
+        requestId: parsed.requestId.toString(),
+      },
     },
-  });
+  };
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = schema.parse(await request.json());
+    return NextResponse.json(await buildCreateBondPayload(body));
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Could not build a Four.Meme-bonded createBond payload." },
+      { status: 400 },
+    );
+  }
 }

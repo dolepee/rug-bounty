@@ -94,6 +94,18 @@ export default function CreateBondPage() {
 
   const launchEvidence = useMemo(() => parserResult, [parserResult]);
 
+  function handleLaunchTxHashChange(nextValue: string) {
+    setLaunchTxHash(nextValue);
+    setParserError(null);
+
+    if (parserResult && nextValue.trim().toLowerCase() !== parserResult.txHash.toLowerCase()) {
+      if (declaredWalletsInput.trim().toLowerCase() === parserResult.creator.toLowerCase()) {
+        setDeclaredWalletsInput("");
+      }
+      setParserResult(null);
+    }
+  }
+
   async function runClassifier() {
     setLoading(true);
     setClassifierError(null);
@@ -117,6 +129,7 @@ export default function CreateBondPage() {
   }
 
   async function parseLaunchTx() {
+    const previousParsed = parserResult;
     setParserError(null);
     setParserResult(null);
 
@@ -132,7 +145,11 @@ export default function CreateBondPage() {
       return;
     }
     setParserResult(data.parsed as ParsedLaunchEvidence);
-    setDeclaredWalletsInput((current) => current || (data.parsed.creator as string));
+    setDeclaredWalletsInput((current) => {
+      const normalized = current.trim().toLowerCase();
+      const previousCreator = previousParsed?.creator.toLowerCase();
+      return !normalized || (previousCreator && normalized === previousCreator) ? (data.parsed.creator as string) : current;
+    });
   }
 
   const grouped = useMemo(() => {
@@ -390,7 +407,7 @@ export default function CreateBondPage() {
             <div>
               <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Four.Meme launch tx hash</label>
               <div className="flex gap-3">
-                <input value={launchTxHash} onChange={(event) => setLaunchTxHash(event.target.value)} placeholder="0x..." className="font-mono" />
+                <input value={launchTxHash} onChange={(event) => handleLaunchTxHashChange(event.target.value)} placeholder="0x..." className="font-mono" />
                 <button className="button-secondary rounded-xl px-4 py-3 text-sm" onClick={parseLaunchTx} type="button">
                   Parse
                 </button>

@@ -2,17 +2,15 @@
 
 RugBounty is a bond-backed accountability layer for Four.Meme launches on BNB Chain.
 
-Creators put BNB behind one public promise about their own bag. If their declared creator-wallet balance drops below a public floor before expiry, any hunter can call the vault and take the bond. An autonomous Rug Hunter Agent watches active bonds, flags breaches onchain, and races permissionless slash transactions when the floor breaks.
+Creators lock BNB behind one public promise about their own bag. If their declared creator-wallet balance drops below a public floor before expiry, any hunter can call the vault and take the bond. A live Rug Hunter Agent watches active bonds, flags breaches onchain, and monitors the permissionless slash path.
 
-Formal positioning: `Bonded Launches for Four.Meme`
-
-Campaign line: `Pay me if I rug.`
+Positioning: `Bonded Launches for Four.Meme`
 
 ## Proof model
 
 Vault-enforced:
 - `CREATOR_WALLET_FLOOR` slash / refund logic
-- declared wallets, retained floor, expiry, bond amount
+- declared wallets, retained floor, expiry, bond amount, slash window
 
 App-verified:
 - Four.Meme `TokenCreate` parsing from a submitted launch tx hash
@@ -21,83 +19,62 @@ App-verified:
 AI-assisted:
 - promise classification
 - rule compilation
-- narrative explanations
+- explanatory copy around enforceable vs social-only claims
 
 When configured, the AI layer uses DGrid's OpenAI-compatible gateway first and falls back to deterministic local logic if the provider is unavailable.
 
 Not claimed:
 - full rug detection
 - hidden-wallet detection
-- on-chain verification of historical Four.Meme launch events
+- onchain verification of historical Four.Meme launch events inside the vault
 - during the hackathon demo period, `PROTOCOL_TREASURY` is author-controlled; production deployments should point the 20% protocol leg at a burn, DAO, or multisig
 
 ## Verified mainnet proof set
 
-The final-vault proof set has both mainnet outcomes:
-
-Slash proof, `FinalSlash / FSLH`:
-
-- Four.Meme launch tx:
-  `0x9dffb11791807de1d0ef3ebd81a5df68bb6fab9fdaad1118615d42b11ab0c1b9`
-- BondCreated tx:
-  `0x9a124548380e3b37efbe9b6fb6f6b34f4b78c496d1709ad1b3aaf00eda3a09a2`
-- BondBreachFlagged tx:
-  `0x35eb0ec84eaf121d454a0b68abc7b7994121f466975505c901ec645fb15f762a`
-- BondSlashed tx:
-  `0x6d039369733eaca6d8d9475603449f723c58471577af0efca69565e9e50fed59`
-
-Refund proof, `FinalRefund / FRFD`:
-
-- Four.Meme launch tx:
-  `0xaaf8cd23968cdcab641e522b0b09c771a660940bdae46e514a2bca9f06da25b4`
-- BondCreated tx:
-  `0x4fa2340dbe8fb66e0af83053d596354efd805b5594483356aa044435a1b8af28`
-- BondRefunded tx:
-  `0x18c2cc2b0205c21dc304ae2872a9bb6ce9b3aad54ecce765d27efe11d331103f`
-
-What happened:
-- the creator launched `FSLH` on Four.Meme, bonded a `1.05M FSLH` retained-balance floor with `0.003 BNB`, then sold below the floor
-- the Rug Hunter Agent flagged the breach onchain, and a third-party hunter won the permissionless slash race on the final vault
-- the creator launched `FRFD` on Four.Meme, bonded a `1.05M FRFD` retained-balance floor with `0.005 BNB`, kept the balance above floor through expiry plus the hunter grace window, then claimed the refund on the final vault
-
-Configured vault:
+Final vault:
 - `0xe010a3457001a0a8a6f2e69cdc962e705dbdedea`
 
+Slash proof, `FinalSlash / FSLH`:
+- Four.Meme launch tx: `0x9dffb11791807de1d0ef3ebd81a5df68bb6fab9fdaad1118615d42b11ab0c1b9`
+- BondCreated tx: `0x9a124548380e3b37efbe9b6fb6f6b34f4b78c496d1709ad1b3aaf00eda3a09a2`
+- BondBreachFlagged tx: `0x35eb0ec84eaf121d454a0b68abc7b7994121f466975505c901ec645fb15f762a`
+- BondSlashed tx: `0x6d039369733eaca6d8d9475603449f723c58471577af0efca69565e9e50fed59`
+
+Refund proof, `FinalRefund / FRFD`:
+- Four.Meme launch tx: `0xaaf8cd23968cdcab641e522b0b09c771a660940bdae46e514a2bca9f06da25b4`
+- BondCreated tx: `0x4fa2340dbe8fb66e0af83053d596354efd805b5594483356aa044435a1b8af28`
+- BondRefunded tx: `0x18c2cc2b0205c21dc304ae2872a9bb6ce9b3aad54ecce765d27efe11d331103f`
+
+What happened:
+- `FSLH` was launched on Four.Meme, bonded with a `1.05M FSLH` retained-balance floor and `0.003 BNB`, then sold below floor
+- the Rug Hunter Agent flagged the breach onchain, and a third-party hunter won the permissionless slash race
+- `FRFD` was launched on Four.Meme, bonded with a `1.05M FRFD` retained-balance floor and `0.005 BNB`, held above floor through expiry plus grace window, then refunded
+
 Budget note:
-- these verified proof bonds were intentionally kept small so the full mainnet loop could be cycled repeatedly under hackathon budget
+- these proof bonds were intentionally kept small so the full mainnet loop could be cycled repeatedly under hackathon budget
 - the primitive itself is not tied to small bond sizes
 
 Archived earlier proof:
-- older rehearsal loops (`PATCH`, `SEAL`, and `BIBI`) remain real onchain history, but the current public showcase and submission narrative are anchored to the final `FSLH/FRFD` vault above.
+- older rehearsal loops (`PATCH`, `SEAL`, `BIBI`) remain real onchain history, but the current public proof set is anchored to the final `FSLH/FRFD` vault above
 
-## Current state
+## Product surface
 
-Implemented:
+Included in this repo:
 - Next.js 16 app
 - `RugBountyVault.sol`
 - Four.Meme TokenManager2 launch parsing
 - DGrid-backed oath classification / compilation with deterministic fallback
 - browser-wallet `createBond` flow on `/create`, gated behind a successful real Four.Meme parse
 - creator-balance / minimum-floor / recommended-floor guidance on `/create`
-- minute-based oath durations for faster refund-path demos
-- manual `resolveBond` and `refundAfterExpiry` actions on the proof page
-- proof detail / certificate / broken-oaths surfaces
-- real certificate share-card render route at `/api/certificate/render`
-- public APIs aligned to the verified proof set instead of mock rows
+- proof detail, certificate, and broken-oaths surfaces
 - public hunter status route at `/api/hunter/status`
-- Rug Hunter Agent watcher and slash path
 - PM2 runtime config for persistent hunter deployment
 - minimal HTTP skill wrapper under `skills/rugbounty` and `/api/skill/*`
 - Ganache-backed contract tests for create / slash / refund / revert paths
-- real mainnet proof loop for launch -> bond -> breach -> slash
 
-Currently proven on mainnet:
+Mainnet state:
 - one real slashed bond on the final vault (`FSLH`)
 - one real refunded bond on the final vault (`FRFD`)
-- older archived proof loops on prior vault iterations (`PATCH`, `SEAL`, `BIBI`)
-
-Currently proven locally and exposed in-product:
-- manual hunter path via `resolveBond`
 
 ## Commands
 
@@ -108,7 +85,6 @@ npm run build
 npm run lint
 npm run test
 npm run compile:contract
-npm run wallets:generate
 npm run agent:dev
 npm run deploy
 ```
@@ -147,20 +123,11 @@ pm2 start ecosystem.config.cjs --only rug-hunter
 ## Skill wrapper
 
 Minimal agent-facing commands are exposed at:
-
 - `GET /api/skill/manifest`
 - `POST /api/skill/parse-launch`
 - `POST /api/skill/compile-oath`
 - `POST /api/skill/create-bond-payload`
 - `GET /api/skill/watch-bond/:id`
 
-The bundled manifest is in [skills/rugbounty/manifest.json](/home/qdee/rug-bounty/skills/rugbounty/manifest.json).
-
-## Demo flow
-
-1. Parse a real Four.Meme launch tx on `/create`
-2. Compile a public promise into one bondable rule
-3. Create the bond from the creator wallet
-4. Breach the retained-balance floor
-5. Let the hunter path trigger: the Rug Hunter Agent flags the breach and any hunter can win the slash race
-6. Open BscScan proof, the manual action surface, and the certificate share card
+Manifest:
+- [skills/rugbounty/manifest.json](/home/qdee/rug-bounty/skills/rugbounty/manifest.json)

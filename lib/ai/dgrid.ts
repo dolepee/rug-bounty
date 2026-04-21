@@ -21,7 +21,7 @@ const classifiedPromiseSchema = z.object({
   text: z.string().min(1),
   class: z.enum(["enforceable", "needs_social_proof", "not_enforceable"]),
   reason: z.string().min(1),
-  suggestedRewrite: z.string().min(1).optional(),
+  suggestedRewrite: z.string().min(1).nullable().optional(),
 });
 
 const classificationResponseSchema = z.object({
@@ -55,6 +55,25 @@ function extractFirstJsonObject(raw: string) {
 
   const match = trimmed.match(/\{[\s\S]*\}/);
   return match?.[0] || null;
+}
+
+export function parseDgridClassificationContent(raw: string, expectedSegments: number): ClassifiedPromise[] {
+  const json = extractFirstJsonObject(raw);
+  if (!json) {
+    throw new Error("DGrid did not return parseable JSON.");
+  }
+
+  const parsed = classificationResponseSchema.parse(JSON.parse(json));
+  if (parsed.classified.length !== expectedSegments) {
+    throw new Error("DGrid classification length did not match the input segment count.");
+  }
+
+  return parsed.classified.map((item) => ({
+    text: item.text,
+    class: item.class,
+    reason: item.reason,
+    ...(item.suggestedRewrite ? { suggestedRewrite: item.suggestedRewrite } : {}),
+  })) satisfies ClassifiedPromise[];
 }
 
 async function chatText(messages: Array<{ role: "system" | "user"; content: string }>) {
@@ -111,20 +130,10 @@ export async function classifyPromisesWithFallback(input: string) {
       },
     ]);
 
-    const json = extractFirstJsonObject(content);
-    if (!json) {
-      throw new Error("DGrid did not return parseable JSON.");
-    }
-
-    const parsed = classificationResponseSchema.parse(JSON.parse(json));
-    if (parsed.classified.length !== segments.length) {
-      throw new Error("DGrid classification length did not match the input segment count.");
-    }
-
     return {
       provider: "dgrid" as const,
       model: dgridModel,
-      classified: parsed.classified as ClassifiedPromise[],
+      classified: parseDgridClassificationContent(content, segments.length),
     };
   } catch {
     return {

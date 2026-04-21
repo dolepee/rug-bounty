@@ -132,6 +132,37 @@ test("compile route uses the enforceable classified segment instead of the first
   assert.equal(json.rule?.expiresInSeconds, 900);
 });
 
+test("DGrid classification parser accepts fenced JSON with null suggested rewrites", async () => {
+  const dgrid = getModuleExports<{
+    parseDgridClassificationContent: (raw: string, expectedSegments: number) => Array<{
+      text: string;
+      class: string;
+      reason: string;
+      suggestedRewrite?: string;
+    }>;
+  }>(await import("../lib/ai/dgrid.ts"));
+
+  const result = dgrid.parseDgridClassificationContent(
+    [
+      "```json",
+      "{",
+      '  "classified": [',
+      '    {"text":"I will hold at least 1.05M tokens for 15 minutes.","class":"enforceable","reason":"wallet floor","suggestedRewrite":null},',
+      '    {"text":"Binance listing soon.","class":"not_enforceable","reason":"not onchain","suggestedRewrite":null}',
+      "  ]",
+      "}",
+      "```",
+    ].join("\n"),
+    2,
+  );
+
+  assert.equal(result.length, 2);
+  assert.equal(result[0]?.class, "enforceable");
+  assert.equal(result[0]?.suggestedRewrite, undefined);
+  assert.equal(result[1]?.class, "not_enforceable");
+  assert.equal(result[1]?.suggestedRewrite, undefined);
+});
+
 test("hunter feed stays empty without a real runtime feed file", async () => {
   const tempDir = path.join(os.tmpdir(), `rug-bounty-feed-empty-${Date.now()}`);
   await mkdir(tempDir, { recursive: true });

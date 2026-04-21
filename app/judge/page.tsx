@@ -27,6 +27,11 @@ export default async function JudgeModePage() {
   const slashProofBond = proofs.find((bond) => bond.id === showcaseProof.bondId) ?? null;
   const refundProofBond = proofs.find((bond) => bond.id === refundProof.bondId) ?? null;
   const hunterStatus = await getHunterRuntimeStatus();
+  const watchedBondIdsLabel = hunterStatus.watchedBondIds.length
+    ? hunterStatus.watchedBondIds.join(", ")
+    : hunterStatus.status === "online"
+      ? "watcher online, no active bonds currently monitored"
+      : "no active bonds currently monitored";
 
   return (
     <section className="section-shell py-12">
@@ -90,7 +95,7 @@ export default async function JudgeModePage() {
             <div className="flex justify-between gap-4">
               <span className="text-zinc-500">Watched bond ids</span>
               <span className="font-mono text-zinc-300">
-                {hunterStatus.watchedBondIds.length ? hunterStatus.watchedBondIds.join(", ") : "none active"}
+                {watchedBondIdsLabel}
               </span>
             </div>
           </div>
@@ -185,7 +190,22 @@ export default async function JudgeModePage() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="mt-8 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="surface rounded-3xl p-6">
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Why AI belongs here</div>
+          <div className="mt-4 grid gap-4">
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+              AI compresses vague creator messaging into one machine-checkable oath instead of leaving traders to interpret hype by hand.
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+              It separates enforceable balance-floor promises from social-only claims, so the vault bonds only the sentence the contract can actually judge.
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-7 text-zinc-300">
+              That makes launch trust legible in minutes: creators get a cleaner oath, traders get a narrower claim, and the vault gets a rule it can enforce.
+            </div>
+          </div>
+        </div>
+
         <div className="surface rounded-3xl p-6">
           <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Why Four.Meme specifically</div>
           <div className="mt-4 grid gap-4">

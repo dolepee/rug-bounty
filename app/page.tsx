@@ -18,6 +18,11 @@ export default async function HomePage() {
   const showcase = currentProofs.find((bond) => bond.id === showcaseProof.bondId) ?? null;
   const refundBond = currentProofs.find((bond) => bond.id === refundProof.bondId) ?? null;
   const hunterStatus = await getHunterRuntimeStatus();
+  const watchedBondIdsLabel = hunterStatus.watchedBondIds.length
+    ? hunterStatus.watchedBondIds.join(", ")
+    : hunterStatus.status === "online"
+      ? "watcher online, no active bonds currently monitored"
+      : "no active bonds currently monitored";
 
   return (
     <div className="pb-24">
@@ -66,7 +71,7 @@ export default async function HomePage() {
                     Two outcomes are proven on BNB mainnet.
                   </h2>
                   <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">
-                    The public proof set shows both sides of the primitive: break the promise and lose the bond, keep the promise and claim it back. These demo bonds are intentionally small because they were cycled live under hackathon budget. The primitive itself is not tied to small amounts.
+                    The public proof set shows both sides of the primitive: break the promise and lose the bond, keep the promise and claim it back. These verified proof bonds are intentionally small because they were cycled under hackathon budget. The primitive itself is not tied to small amounts.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
@@ -89,7 +94,7 @@ export default async function HomePage() {
                       </p>
                     </div>
                     <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                      Live status: {showcase.status}
+                      Current status: {showcase.status}
                     </div>
                   </div>
                   <div className="mt-5 flex flex-wrap gap-3">
@@ -128,7 +133,7 @@ export default async function HomePage() {
                       </p>
                     </div>
                     <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                      Live status: {refundBond.status}
+                      Current status: {refundBond.status}
                     </div>
                   </div>
                   <div className="mt-5 flex flex-wrap gap-3">
@@ -169,15 +174,15 @@ export default async function HomePage() {
       <section className="section-shell mt-12">
         <div className="grid gap-4 lg:grid-cols-4">
           <div className="surface-strong rounded-2xl p-5">
-            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live launch proofs</div>
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Verified proof loops</div>
             <div className="mt-3 text-3xl font-semibold">{currentProofs.length}</div>
           </div>
           <div className="surface-strong rounded-2xl p-5">
-            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live slashes</div>
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Verified slashes</div>
             <div className="mt-3 text-3xl font-semibold text-red-300">{currentProofs.filter((bond) => bond.status === "SLASHED").length}</div>
           </div>
           <div className="surface-strong rounded-2xl p-5">
-            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Live refunds</div>
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Verified refunds</div>
             <div className="mt-3 text-3xl font-semibold text-emerald-300">{currentProofs.filter((bond) => bond.status === "REFUNDED").length}</div>
           </div>
           <div className="surface-strong rounded-2xl p-5">
@@ -249,7 +254,7 @@ export default async function HomePage() {
                 <div>
                   <div className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Watched bond ids</div>
                   <div className="mt-2 font-mono text-zinc-300">
-                    {hunterStatus.watchedBondIds.length ? hunterStatus.watchedBondIds.join(", ") : "none active"}
+                    {watchedBondIdsLabel}
                   </div>
                 </div>
               </div>

@@ -99,6 +99,7 @@ export default function CreateBondPage() {
     setParserError(null);
 
     if (parserResult && nextValue.trim().toLowerCase() !== parserResult.txHash.toLowerCase()) {
+      setCompiled(null);
       if (declaredWalletsInput.trim().toLowerCase() === parserResult.creator.toLowerCase()) {
         setDeclaredWalletsInput("");
       }
@@ -132,6 +133,7 @@ export default function CreateBondPage() {
     const previousParsed = parserResult;
     setParserError(null);
     setParserResult(null);
+    setCompiled(null);
 
     if (!launchTxHash.trim()) {
       setParserError("Paste a Four.Meme mainnet launch tx hash first.");
@@ -260,6 +262,11 @@ export default function CreateBondPage() {
     const lines = oathText.split("\n");
     const next = [launchGuidance.suggestedFirstLine, ...lines.slice(1)].join("\n");
     setOathText(next);
+  }
+
+  function handleOathTextChange(nextValue: string) {
+    setCompiled(null);
+    setOathText(nextValue);
   }
 
   async function connectWallet() {
@@ -485,7 +492,7 @@ export default function CreateBondPage() {
 
             <div>
               <label className="mb-2 block font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">Oath text</label>
-              <textarea value={oathText} onChange={(event) => setOathText(event.target.value)} />
+              <textarea value={oathText} onChange={(event) => handleOathTextChange(event.target.value)} />
             </div>
 
             <div className="flex gap-3">
@@ -515,7 +522,7 @@ export default function CreateBondPage() {
                 <div className="mt-2 text-xs text-zinc-500">Minimum bond on the current vault: {minBondLabel} BNB.</div>
               </div>
               <div className="flex items-end">
-                <button className="button-primary rounded-xl px-5 py-3 text-sm" onClick={submitBond} disabled={submitLoading} type="button">
+                <button className="button-primary rounded-xl px-5 py-3 text-sm" onClick={submitBond} disabled={submitLoading || !compiled?.rule || !launchEvidence} type="button">
                   {submitLoading ? "Submitting..." : "Create Bond Onchain"}
                 </button>
               </div>

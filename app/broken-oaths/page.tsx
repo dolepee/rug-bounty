@@ -33,7 +33,7 @@ export default async function BrokenOathsPage() {
                 <span>{bond.declaredFloor}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-500">Balance at slash</span>
+                <span className="text-zinc-500">Latest observed balance</span>
                 <span>{bond.currentBalance}</span>
               </div>
               <div className="flex justify-between">

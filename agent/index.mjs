@@ -291,23 +291,26 @@ async function main() {
   }
 
   async function tick() {
-    await refreshActiveBondIds();
-    for (const bondId of Array.from(activeBondIds)) {
-      try {
-        await inspectBond(bondId);
-      } catch (error) {
-        console.error(`[rug-hunter] bond ${bondId} failed`, error);
+    try {
+      await refreshActiveBondIds();
+      for (const bondId of Array.from(activeBondIds)) {
+        try {
+          await inspectBond(bondId);
+        } catch (error) {
+          console.error(`[rug-hunter] bond ${bondId} failed`, error);
+        }
       }
+    } finally {
+      await writeStatusSnapshot({
+        runtime: "vps-pm2",
+        status: "online",
+        vaultAddress: normalizedVaultAddress,
+        lastTickIso: new Date().toISOString(),
+        watchedBondIds: Array.from(activeBondIds),
+        lastResolvedBondId,
+        lastResolvedTxHash,
+      });
     }
-    await writeStatusSnapshot({
-      runtime: "vps-pm2",
-      status: "online",
-      vaultAddress: normalizedVaultAddress,
-      lastTickIso: new Date().toISOString(),
-      watchedBondIds: Array.from(activeBondIds),
-      lastResolvedBondId,
-      lastResolvedTxHash,
-    });
   }
 
   await tick();

@@ -19,50 +19,44 @@ const onlineWindowMs = 24 * 60 * 60 * 1000;
 const defaultStatusPath = path.join(process.cwd(), "agent", "status.runtime.json");
 const cleanEnv = (value?: string | null) => value?.trim() || undefined;
 const configuredVaultAddress = cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) || cleanEnv(process.env.RUG_BOUNTY_VAULT_ADDRESS) || null;
+const remoteStatusUrl = cleanEnv(process.env.RUG_HUNTER_STATUS_URL) || "https://16.16.120.1.sslip.io/rug-hunter/status.json";
 
-export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
+type HunterStatusSnapshot = {
+  runtime?: "vps-pm2";
+  status?: "online" | "stale" | "unknown";
+  vaultAddress?: string | null;
+  lastTickIso?: string | null;
+  watchedBondIds?: string[] | null;
+  lastResolvedBondId?: string | null;
+  lastResolvedTxHash?: string | null;
+};
+
+function deriveRuntimeStatus(lastTickIso?: string | null, fallbackStatus?: "online" | "stale" | "unknown") {
+  const lastTickAt = lastTickIso ? new Date(lastTickIso).getTime() : NaN;
+  return lastTickIso && Number.isFinite(lastTickAt) && Date.now() - lastTickAt <= onlineWindowMs
+    ? "online"
+    : lastTickIso
+      ? "stale"
+      : fallbackStatus || "unknown";
+}
+
+async function readRemoteStatusSnapshot(): Promise<HunterStatusSnapshot | null> {
   try {
-    const raw = await fs.readFile((process.env.RUG_HUNTER_STATUS_PATH || defaultStatusPath).trim(), "utf8");
-    const parsed = JSON.parse(raw) as {
-      runtime?: "vps-pm2";
-      status?: "online" | "stale" | "unknown";
-      vaultAddress?: string | null;
-      lastTickIso?: string | null;
-      watchedBondIds?: string[] | null;
-      lastResolvedBondId?: string | null;
-      lastResolvedTxHash?: string | null;
-    };
-    const lastTickAt = parsed.lastTickIso ? new Date(parsed.lastTickIso).getTime() : NaN;
-    return {
-      runtime: parsed.runtime || "vps-pm2",
-      status:
-        parsed.lastTickIso && Number.isFinite(lastTickAt) && Date.now() - lastTickAt <= onlineWindowMs
-          ? "online"
-          : parsed.lastTickIso
-            ? "stale"
-            : parsed.status || "unknown",
-      vaultAddress: parsed.vaultAddress ?? null,
-      lastTickIso: parsed.lastTickIso ?? null,
-      watchedBondIds: parsed.watchedBondIds ?? [],
-      lastEventLabel: parsed.lastResolvedBondId ? `bond #${parsed.lastResolvedBondId} was last resolved onchain` : "hunter heartbeat recorded",
-      lastEventAtIso: parsed.lastTickIso ?? null,
-      lastResolvedBondId: parsed.lastResolvedBondId ?? null,
-      lastResolvedTxHash: parsed.lastResolvedTxHash ?? showcaseProof.slashTxHash,
-    };
+    const response = await fetch(remoteStatusUrl, {
+      cache: "no-store",
+      next: { revalidate: 0 },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return (await response.json()) as HunterStatusSnapshot;
   } catch {
-    // fall through to feed-derived status
+    return null;
   }
+}
 
-  const entries = await readHunterFeed();
+function deriveFeedFields(entries: Awaited<ReturnType<typeof readHunterFeed>>) {
   const latest = entries[0] ?? null;
-  const latestTimestamp = latest ? new Date(latest.createdAtIso).getTime() : NaN;
-  const status =
-    latest && Number.isFinite(latestTimestamp) && Date.now() - latestTimestamp <= onlineWindowMs
-      ? "online"
-      : latest
-        ? "stale"
-        : "unknown";
-
   const resolvedEntry =
     entries.find((entry) => entry.id.startsWith("live-slash-bond-")) ??
     entries.find((entry) => entry.id.startsWith("slashed-")) ??
@@ -78,6 +72,58 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
     : null;
 
   return {
+    latest,
+    resolvedBondId,
+    resolvedTxHash: resolvedEntry?.txHash ?? showcaseProof.slashTxHash,
+  };
+}
+
+export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
+  const entries = await readHunterFeed();
+  const { latest, resolvedBondId, resolvedTxHash } = deriveFeedFields(entries);
+
+  const remote = await readRemoteStatusSnapshot();
+  if (remote) {
+    return {
+      runtime: remote.runtime || "vps-pm2",
+      status: deriveRuntimeStatus(remote.lastTickIso, remote.status),
+      vaultAddress: remote.vaultAddress ?? configuredVaultAddress,
+      lastTickIso: remote.lastTickIso ?? null,
+      watchedBondIds: remote.watchedBondIds ?? [],
+      lastEventLabel: latest?.label ?? (remote.lastTickIso ? "hunter heartbeat recorded" : null),
+      lastEventAtIso: latest?.createdAtIso ?? remote.lastTickIso ?? null,
+      lastResolvedBondId: resolvedBondId,
+      lastResolvedTxHash: resolvedTxHash,
+    };
+  }
+
+  try {
+    const raw = await fs.readFile((process.env.RUG_HUNTER_STATUS_PATH || defaultStatusPath).trim(), "utf8");
+    const parsed = JSON.parse(raw) as HunterStatusSnapshot;
+    return {
+      runtime: parsed.runtime || "vps-pm2",
+      status: deriveRuntimeStatus(parsed.lastTickIso, parsed.status),
+      vaultAddress: parsed.vaultAddress ?? null,
+      lastTickIso: parsed.lastTickIso ?? null,
+      watchedBondIds: parsed.watchedBondIds ?? [],
+      lastEventLabel: latest?.label ?? (parsed.lastTickIso ? "hunter heartbeat recorded" : null),
+      lastEventAtIso: latest?.createdAtIso ?? parsed.lastTickIso ?? null,
+      lastResolvedBondId: resolvedBondId,
+      lastResolvedTxHash: resolvedTxHash,
+    };
+  } catch {
+    // fall through to feed-derived status
+  }
+
+  const latestTimestamp = latest ? new Date(latest.createdAtIso).getTime() : NaN;
+  const status =
+    latest && Number.isFinite(latestTimestamp) && Date.now() - latestTimestamp <= onlineWindowMs
+      ? "online"
+      : latest
+        ? "stale"
+        : "unknown";
+
+  return {
     runtime: "vps-pm2",
     status,
     vaultAddress: configuredVaultAddress,
@@ -86,6 +132,6 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
     lastEventLabel: latest?.label ?? null,
     lastEventAtIso: latest?.createdAtIso ?? null,
     lastResolvedBondId: resolvedBondId,
-    lastResolvedTxHash: resolvedEntry?.txHash ?? showcaseProof.slashTxHash,
+    lastResolvedTxHash: resolvedTxHash,
   };
 }

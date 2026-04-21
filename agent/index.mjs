@@ -11,6 +11,7 @@ const startBlock = process.env.RUG_BOUNTY_START_BLOCK;
 const pollMs = Number(process.env.RUG_HUNTER_POLL_MS || 15000);
 const feedPath = (process.env.RUG_HUNTER_FEED_PATH || path.join(process.cwd(), "agent", "feed.json")).trim();
 const statusPath = (process.env.RUG_HUNTER_STATUS_PATH || path.join(process.cwd(), "agent", "status.runtime.json")).trim();
+const publicStatusPath = (process.env.RUG_HUNTER_PUBLIC_STATUS_PATH || "/tmp/rug-hunter-status.public.json").trim();
 const postExpirySlashWindowSeconds = Number(process.env.RUG_HUNTER_POST_EXPIRY_SLASH_WINDOW_SECONDS || 600);
 const fallbackRpcs = [
   primaryRpc,
@@ -125,6 +126,21 @@ async function writeStatusSnapshot(snapshot) {
   try {
     await mkdir(path.dirname(statusPath), { recursive: true });
     await writeFile(statusPath, JSON.stringify(snapshot, null, 2));
+    await mkdir(path.dirname(publicStatusPath), { recursive: true });
+    await writeFile(
+      publicStatusPath,
+      JSON.stringify(
+        {
+          runtime: snapshot.runtime,
+          status: snapshot.status,
+          vaultAddress: snapshot.vaultAddress,
+          lastTickIso: snapshot.lastTickIso,
+          watchedBondIds: snapshot.watchedBondIds,
+        },
+        null,
+        2,
+      ),
+    );
   } catch (error) {
     console.error("[rug-hunter] status-write failed", error);
   }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { bscScanAddressUrl, bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
-import { getCurrentMainnetProofs, refundProof, showcaseProof } from "@/lib/data/showcase";
+import { getCurrentMainnetProofs, legacyProofVaultAddress, refundProof, showcaseProof } from "@/lib/data/showcase";
 import { readHunterFeed } from "@/lib/data/hunter-feed";
 import { getHunterRuntimeStatus } from "@/lib/data/hunter-status";
 import { getConfiguredVaultAddress } from "@/lib/data/live-bonds";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const evidenceRows = [
   { label: "Onchain enforced", body: "Floor, expiry, grace window, declared wallets, slash, and refund are enforced by the verified vault." },
   { label: "App verified", body: "The official create flow requires a successful real Four.Meme TokenCreate parse before it will build a bond." },
-  { label: "Verified proof set", body: "The public transaction chains are curated real examples, not seeded screenshots or mock rows." },
+  { label: "Legacy proof archive", body: "The public transaction chains are curated real examples from the previous public vault, not seeded screenshots or mock rows." },
   { label: "Runtime verified", body: "Watcher status comes from the VPS heartbeat path, not from showcase fallback data." },
 ];
 
@@ -61,6 +61,7 @@ export default async function JudgeModePage() {
               <div className="label-mono">Packet metadata</div>
               <div className="mt-4 space-y-3">
                 <Meta label="Vault" value={vaultAddress ? `${vaultAddress.slice(0, 8)}…${vaultAddress.slice(-6)}` : "not configured"} mono />
+                <Meta label="Archive vault" value={`${legacyProofVaultAddress.slice(0, 8)}…${legacyProofVaultAddress.slice(-6)}`} mono />
                 <Meta
                   label="Runtime"
                   value={`${hunterStatus.runtime.toUpperCase()} / ${hunterStatus.status.toUpperCase()}`}
@@ -92,10 +93,13 @@ export default async function JudgeModePage() {
       </section>
 
       <section className="section-shell">
-        <div className="label-mono">Mainnet exhibits</div>
+        <div className="label-mono">Legacy proof archive</div>
         <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">
           Historical failure and success proofs are already public.
         </h2>
+        <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/72">
+          These exhibits come from the previous public vault. The current active vault is the burn-address successor, and this archive remains public so reviewers can inspect earlier real mainnet outcomes without confusing them with the current funded flow.
+        </p>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           {slashProofBond ? (

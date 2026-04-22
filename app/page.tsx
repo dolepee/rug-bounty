@@ -4,6 +4,7 @@ import { ArrowUpRight, Bot, ShieldCheck, Sparkles } from "lucide-react";
 import {
   getCurrentMainnetProofs,
   getDirectoryBonds,
+  legacyProofVaultAddress,
   refundProof,
   showcaseProof,
   type ShowcaseBond,
@@ -39,7 +40,7 @@ export default async function HomePage() {
           <div className="inline-flex items-center gap-3 rounded-full border border-white/8 bg-white/[0.03] px-4 py-2">
             <span className={`live-dot live-dot--${hunterStatus.status === "online" ? "lime" : hunterStatus.status === "stale" ? "yellow" : "muted"}`} />
             <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[var(--fg-muted)]">
-              Verified mainnet proof set / {hunterLine}
+              Current vault live / {hunterLine}
             </span>
           </div>
 
@@ -65,7 +66,7 @@ export default async function HomePage() {
 
               <div className="mt-10 grid max-w-4xl gap-4 sm:grid-cols-3">
                 <HeroStat label="Current vault" value={hunterStatus.vaultAddress ? shortenAddress(hunterStatus.vaultAddress) : "unconfigured"} mono />
-                <HeroStat label="Historical proofs" value={`${currentProofs.length} verified`} />
+                <HeroStat label="Legacy proofs" value={`${currentProofs.length} archived`} />
                 <HeroStat label="Network" value="BNB mainnet" />
               </div>
             </div>
@@ -86,6 +87,7 @@ export default async function HomePage() {
 
               <div className="mt-6 space-y-3">
                 <SystemRow label="Vault source" value="Verified on BscScan" accent="lime" />
+                <SystemRow label="Archive vault" value={shortenAddress(legacyProofVaultAddress)} mono />
                 <SystemRow label="Watcher runtime" value={hunterStatus.lastTickIso ? new Date(hunterStatus.lastTickIso).toLocaleString() : "heartbeat unavailable"} />
                 <SystemRow label="Latest event" value={hunterStatus.lastEventLabel ?? "no public event recorded"} />
                 <SystemRow label="Slash proof" value={showcaseProof.slashTxHash.slice(0, 10) + "…" + showcaseProof.slashTxHash.slice(-6)} mono accent="red" />
@@ -154,12 +156,12 @@ export default async function HomePage() {
       <section className="section-shell mt-16 md:mt-20">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <div className="label-mono">Verified proof set</div>
+            <div className="label-mono">Legacy proof archive</div>
             <h2 className="mt-3 font-display text-3xl md:text-4xl font-extrabold tracking-tight">
-              The final vault has both outcomes on record.
+              The previous public vault already proved both outcomes.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/70">
-              Reviewers do not need to imagine the system. The slash path and the refund path are both already public on BNB mainnet.
+              Reviewers do not need to imagine the system. The earlier public vault already recorded both the slash path and the refund path. The current burn-address vault is the hardened successor now used for fresh testing.
             </p>
           </div>
           <Link

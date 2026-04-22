@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { getDirectoryBonds } from "@/lib/data/showcase";
+import { getConfiguredVaultAddress } from "@/lib/data/live-bonds";
 
 export const dynamic = "force-dynamic";
 
@@ -8,9 +9,9 @@ type StatusVariant = "slashed" | "refunded" | "active";
 
 export default async function DirectoryPage() {
   const bonds = await getDirectoryBonds();
+  const currentVaultAddress = getConfiguredVaultAddress();
   const slashedCount = bonds.filter((bond) => bond.status === "SLASHED").length;
   const refundedCount = bonds.filter((bond) => bond.status === "REFUNDED").length;
-  const activeCount = bonds.length - slashedCount - refundedCount;
 
   return (
     <div>
@@ -19,10 +20,10 @@ export default async function DirectoryPage() {
         <div className="section-shell py-12 md:py-16">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <div className="label-mono">Verified proof directory</div>
+              <div className="label-mono">Historical proof archive</div>
               <h1 className="mt-3 hazard-title--sm">Every bond. Every receipt.</h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
-                Each row points at a real Four.Meme launch, a real bond, and a real onchain outcome. The directory preserves proof-state values; receipt pages also show current live vault context when it matters.
+                Each row points at a real Four.Meme launch, a real bond, and a real onchain outcome. This archive preserves proof-state values from earlier public vaults; current funded tests should use the active vault shown in the create flow and judge packet.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -79,18 +80,18 @@ export default async function DirectoryPage() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <GuideCard
-            title="Verified proof set"
-            body="These rows are deliberate public examples backed by real tx chains. Not a live-indexed sweep of the chain."
+            title="Archive scope"
+            body="These rows are historical public proof chains backed by real tx receipts. They are kept for inspection, not treated as the current funded system."
             dot="muted"
           />
           <GuideCard
-            title="Current vault context"
-            body="Proof rows stay anchored to the historical evidence. Live chain state appears separately inside each receipt so settled bonds do not look misleading."
+            title="Official vault"
+            body={currentVaultAddress ? `New funded tests should use ${shortenAddress(currentVaultAddress)}. Proof rows stay anchored to historical evidence.` : "The active vault is shown in create and judge mode."}
             dot="yellow"
           />
           <GuideCard
-            title={`${activeCount} bond${activeCount === 1 ? "" : "s"} still active`}
-            body="Live bonds can still be slashed. Permissionless: anyone can flag breach or call resolveBond."
+            title="Runtime remains live"
+            body="The watcher heartbeat and current funded flow live on the active vault. Archive receipts remain public so the old proof chain stays auditable."
             dot="yellow"
           />
         </div>
@@ -161,4 +162,9 @@ function formatNumber(raw: string): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString();
+}
+
+function shortenAddress(addr: string): string {
+  if (addr.length < 12) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }

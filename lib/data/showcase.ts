@@ -1,6 +1,8 @@
 import type { Address, Hex } from "viem";
 import { getLiveBondById, type LiveBondRecord } from "@/lib/data/live-bonds";
 
+export const legacyProofVaultAddress = "0xe010a3457001a0a8a6f2e69cdc962e705dbdedea" as Address;
+
 export const showcaseProof = {
   bondId: "0",
   launchTxHash: "0x9dffb11791807de1d0ef3ebd81a5df68bb6fab9fdaad1118615d42b11ab0c1b9" as Hex,
@@ -69,7 +71,7 @@ const staticShowcaseBond: ShowcaseBond = {
   status: "SLASHED",
   expiresAtIso: "2026-04-20T20:55:14.000Z",
   launchTxHash: showcaseProof.launchTxHash,
-  notes: "Verified BNB mainnet proof from the final vault: launched, bonded, breached, flagged by the Rug Hunter Agent, and ultimately slashed by a third-party hunter in the permissionless race.",
+  notes: "Archived BNB mainnet proof from the previous public vault: launched, bonded, breached, flagged by the watcher, and ultimately slashed by a third-party hunter in the permissionless race.",
   bondTxHash: showcaseProof.bondTxHash,
   slashTxHash: showcaseProof.slashTxHash,
 };
@@ -105,7 +107,7 @@ const staticRefundBond: ShowcaseBond = {
   status: "REFUNDED",
   expiresAtIso: "2026-04-20T21:08:35.000Z",
   launchTxHash: refundProof.launchTxHash,
-  notes: "Verified BNB mainnet proof from the final vault that stayed above floor, survived the hunter window, and refunded cleanly to the creator.",
+  notes: "Archived BNB mainnet proof from the previous public vault that stayed above floor, survived the hunter window, and refunded cleanly to the creator.",
   bondTxHash: refundProof.bondTxHash,
   refundTxHash: refundProof.refundTxHash,
 };

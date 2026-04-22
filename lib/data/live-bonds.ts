@@ -4,6 +4,9 @@ import { erc20MetadataAbi } from "@/lib/chain/erc20";
 import { rugBountyVaultAbi } from "@/lib/chain/rug-bounty";
 
 const cleanEnv = (value?: string | null) => value?.trim() || undefined;
+const knownVaultStartBlocks: Partial<Record<Address, bigint>> = {
+  [getAddress("0x8456e375259faab451c6906ba8ac22b1cd8ae1c8")]: 93983877n,
+};
 
 export type LiveBondRecord = {
   id: string;
@@ -25,13 +28,13 @@ export type LiveBondRecord = {
 
 const bondCreatedEvent = rugBountyVaultAbi.find((entry) => entry.type === "event" && entry.name === "BondCreated");
 
-function getConfiguredStartBlock(): bigint | null {
+function getConfiguredStartBlock(vaultAddress?: Address): bigint | null {
   const raw = cleanEnv(process.env.RUG_BOUNTY_START_BLOCK);
   if (!raw) return null;
   try {
     return BigInt(raw);
   } catch {
-    return null;
+    return vaultAddress ? knownVaultStartBlocks[vaultAddress] ?? null : null;
   }
 }
 
@@ -135,10 +138,7 @@ async function getBondCreatedLog(vaultAddress: Address, bondId: bigint) {
     return null;
   }
 
-  const startBlock = getConfiguredStartBlock();
-  if (startBlock === null) {
-    return null;
-  }
+  const startBlock = getConfiguredStartBlock(vaultAddress) ?? knownVaultStartBlocks[vaultAddress] ?? 0n;
 
   try {
     const logs = await getBscPublicClient().getLogs({
@@ -146,6 +146,7 @@ async function getBondCreatedLog(vaultAddress: Address, bondId: bigint) {
       event: bondCreatedEvent,
       args: { bondId },
       fromBlock: startBlock,
+      toBlock: "latest",
     });
     return logs[0] ?? null;
   } catch {

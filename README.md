@@ -35,28 +35,34 @@ Current funded system:
 - `0x8456e375259faab451c6906ba8ac22b1cd8ae1c8`
 - 20% protocol leg routes to the burn address `0x000000000000000000000000000000000000dEaD`
 - duplicate declared wallets are rejected onchain
-- no current-vault public funded proof has been published yet
+
+Current public proof chain on the active vault:
+
+Slash proof, `BurnSlash / BSLH`:
+- Four.Meme launch tx: `0x6010645001bc09ed03acf1d6d7491de2c08a95a2dea6c82cb2c10b0edfe88393`
+- BondCreated tx: `0x51da87a3ec3a08a752b65cdd10877c3d7bbd3a090ac89ba52d0aae176f5288a9`
+- BondBreachFlagged tx: `0xffab0e03fd7e9ed3a2591598b91feacf66573464f76f0abdc71ca5fd97d72afd`
+- BondSlashed tx: `0x766e68b07d852cb155ff23db1c35ab6cf88a8cea8d8ee4a1124c64cef929379f`
+
+Refund proof, `BurnReturn / BRTN`:
+- Four.Meme launch tx: `0x81ec07789a937f63a9c54e77e43fe7d4d421e26c2bbc807a81a42ed5cabfb05b`
+- BondCreated tx: `0x5c8ea971109c72b5b500f77116673afd1ca1fa9a5ca4f2569bc6aa8c0657af4c`
+- BondRefunded tx: `0x395b99e567219b2aa300eaa6a10b716bec70916782a59de36c37623da4b02eb5`
+
+What happened:
+- `BSLH` was launched on Four.Meme, bonded with a `1.05M BSLH` retained-balance floor and `0.003 BNB`, then sold below floor
+- the breach was flagged onchain and the slash settled on the burn-address vault; 80% paid the hunter and 20% burned
+- `BRTN` was launched on Four.Meme, bonded with a `1.05M BRTN` retained-balance floor and `0.005 BNB`, held above floor through expiry plus grace window, then refunded
 
 ## Legacy proof archive
 
 Archived proof vault:
 - `0xe010a3457001a0a8a6f2e69cdc962e705dbdedea`
 
-Slash proof, `FinalSlash / FSLH`:
-- Four.Meme launch tx: `0x9dffb11791807de1d0ef3ebd81a5df68bb6fab9fdaad1118615d42b11ab0c1b9`
-- BondCreated tx: `0x9a124548380e3b37efbe9b6fb6f6b34f4b78c496d1709ad1b3aaf00eda3a09a2`
-- BondBreachFlagged tx: `0x35eb0ec84eaf121d454a0b68abc7b7994121f466975505c901ec645fb15f762a`
-- BondSlashed tx: `0x6d039369733eaca6d8d9475603449f723c58471577af0efca69565e9e50fed59`
-
-Refund proof, `FinalRefund / FRFD`:
-- Four.Meme launch tx: `0xaaf8cd23968cdcab641e522b0b09c771a660940bdae46e514a2bca9f06da25b4`
-- BondCreated tx: `0x4fa2340dbe8fb66e0af83053d596354efd805b5594483356aa044435a1b8af28`
-- BondRefunded tx: `0x18c2cc2b0205c21dc304ae2872a9bb6ce9b3aad54ecce765d27efe11d331103f`
-
-What happened:
-- `FSLH` was launched on Four.Meme, bonded with a `1.05M FSLH` retained-balance floor and `0.003 BNB`, then sold below floor
-- the Rug Hunter Agent flagged the breach onchain, and a third-party hunter won the permissionless slash race
-- `FRFD` was launched on Four.Meme, bonded with a `1.05M FRFD` retained-balance floor and `0.005 BNB`, held above floor through expiry plus grace window, then refunded
+- prior public proof set:
+  - `FinalSlash / FSLH`
+  - `FinalRefund / FRFD`
+- those receipts remain public for inspection, but they are no longer the active funded path
 
 Budget note:
 - these proof bonds were intentionally kept small so the full mainnet loop could be cycled repeatedly under hackathon budget
@@ -81,8 +87,8 @@ Included in this repo:
 - Ganache-backed contract tests for create / slash / refund / revert paths
 
 Mainnet state:
-- active vault is live and ready for fresh funded tests
-- legacy archive contains one real slashed bond (`FSLH`) and one real refunded bond (`FRFD`)
+- active vault is live and already has one real slashed bond (`BSLH`) and one real refunded bond (`BRTN`)
+- legacy archive contains earlier public proof receipts from the previous vault
 
 ## Commands
 

@@ -1,5 +1,5 @@
 import { ArrowUpRight } from "lucide-react";
-import { getBrokenOathBonds, showcaseProof } from "@/lib/data/showcase";
+import { currentSlashProof, getBrokenOathBonds } from "@/lib/data/showcase";
 import { bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,7 @@ export default async function BrokenOathsPage() {
       <section className="section-shell">
         <div className="grid gap-4 lg:grid-cols-2">
           {broken.map((bond) => {
-            const isShowcase = bond.id === showcaseProof.bondId;
+            const isShowcase = bond.id === currentSlashProof.bondId;
             return (
               <div key={bond.id} className="hazard-card hazard-card--slashed p-6 md:p-7">
                 <div className="flex items-start justify-between gap-4">
@@ -39,7 +39,7 @@ export default async function BrokenOathsPage() {
                       <div className="mt-3 inline-flex items-center gap-1.5 rounded border border-[rgba(255,46,46,0.35)] bg-[rgba(255,46,46,0.08)] px-2 py-1">
                         <span className="live-dot live-dot--red" />
                         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--red)]">
-                          Final BNB mainnet slash proof
+                          Current burn-address slash proof
                         </span>
                       </div>
                     ) : null}
@@ -53,21 +53,21 @@ export default async function BrokenOathsPage() {
                 <div className="mt-6 grid grid-cols-3 gap-3">
                   <Metric label="Floor" value={formatNumber(bond.declaredFloor)} />
                   <Metric label="Last balance" value={formatNumber(bond.currentBalance)} />
-                  <Metric label="Bond" value={`${Number(bond.bondAmountBnb).toFixed(4)} BNB`} />
+                  <Metric label="Bond" value={`${Number(bond.originalBondAmountBnb ?? bond.bondAmountBnb).toFixed(4)} BNB`} />
                 </div>
 
                 <p className="mt-5 text-sm leading-relaxed text-white/75">
                   {isShowcase
-                    ? `${bond.ticker} broke its oath on BNB mainnet. The creator launched on Four.Meme, bonded a 1.05M floor, then sold below it. The watcher flagged the breach and a public hunter won the slash race.`
+                    ? `${bond.ticker} broke its oath on the burn-address vault. The creator launched on Four.Meme, bonded a 1.05M floor, then sold below it. The breach was flagged and the slash settled onchain with the protocol leg burned.`
                     : `${bond.ticker} broke its oath. Declared creator wallets fell below the public floor before expiry, and the first hunter to call the vault took the bond.`}
                 </p>
 
                 {isShowcase ? (
                   <div className="mt-5 flex flex-wrap gap-2">
-                    <ProofPill href={bscScanTxUrl(showcaseProof.launchTxHash)} label="Launch" tone="muted" />
-                    <ProofPill href={bscScanTxUrl(showcaseProof.bondTxHash)} label="Bond" tone="yellow" />
-                    <ProofPill href={bscScanTxUrl(showcaseProof.breachFlagTxHash)} label="Flag" tone="red" />
-                    <ProofPill href={bscScanTxUrl(showcaseProof.slashTxHash)} label="Slash" tone="red" />
+                    <ProofPill href={bscScanTxUrl(currentSlashProof.launchTxHash)} label="Launch" tone="muted" />
+                    <ProofPill href={bscScanTxUrl(currentSlashProof.bondTxHash)} label="Bond" tone="yellow" />
+                    <ProofPill href={bscScanTxUrl(currentSlashProof.breachFlagTxHash)} label="Flag" tone="red" />
+                    <ProofPill href={bscScanTxUrl(currentSlashProof.slashTxHash)} label="Slash" tone="red" />
                     <ProofPill href={fourMemeTokenUrl(bond.tokenAddress)} label="Four.Meme" tone="muted" />
                   </div>
                 ) : null}

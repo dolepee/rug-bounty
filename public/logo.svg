@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" role="img" aria-label="RugBounty">
+  <defs>
+    <pattern id="hazard" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+      <rect width="24" height="24" fill="#0A0A0A"/>
+      <rect width="12" height="24" fill="#F3BA2F"/>
+    </pattern>
+    <clipPath id="card">
+      <rect x="0" y="0" width="480" height="480" rx="56"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#card)">
+    <rect width="480" height="480" fill="#0A0A0A"/>
+    <rect x="0" y="0" width="480" height="40" fill="url(#hazard)"/>
+    <rect x="0" y="440" width="480" height="40" fill="url(#hazard)"/>
+    <rect x="16" y="16" width="448" height="448" rx="40" fill="none" stroke="#F3BA2F" stroke-width="6"/>
+
+    <text x="240" y="232"
+          text-anchor="middle"
+          fill="#FFFFFF"
+          font-family="Impact, 'Helvetica Neue', Arial, sans-serif"
+          font-size="112"
+          font-weight="900"
+          letter-spacing="-4">
+      RUG
+    </text>
+    <text x="240" y="340"
+          text-anchor="middle"
+          fill="#F3BA2F"
+          font-family="Impact, 'Helvetica Neue', Arial, sans-serif"
+          font-size="112"
+          font-weight="900"
+          letter-spacing="-4">
+      BOUNTY
+    </text>
+
+    <g transform="translate(240 385)">
+      <rect x="-110" y="-12" width="220" height="26" rx="4" fill="#F3BA2F"/>
+      <text x="0" y="7"
+            text-anchor="middle"
+            fill="#0A0A0A"
+            font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+            font-size="14"
+            font-weight="700"
+            letter-spacing="4">
+        PAY ME IF I RUG
+      </text>
+    </g>
+  </g>
+</svg>

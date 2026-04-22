@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { bscScanAddressUrl, bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
-import { getCurrentMainnetProofs, legacyProofVaultAddress, refundProof, showcaseProof } from "@/lib/data/showcase";
+import {
+  activeProofVaultAddress,
+  currentRefundProof,
+  currentSlashProof,
+  getCurrentMainnetProofs,
+  legacyProofVaultAddress,
+  getLegacyArchiveBonds,
+} from "@/lib/data/showcase";
 import { readHunterFeed } from "@/lib/data/hunter-feed";
 import { getHunterRuntimeStatus } from "@/lib/data/hunter-status";
 import { getConfiguredVaultAddress } from "@/lib/data/live-bonds";
@@ -11,7 +18,7 @@ export const dynamic = "force-dynamic";
 const evidenceRows = [
   { label: "Onchain enforced", body: "Floor, expiry, grace window, declared wallets, slash, and refund are enforced by the verified vault." },
   { label: "App verified", body: "The official create flow requires a successful real Four.Meme TokenCreate parse before it will build a bond." },
-  { label: "Legacy proof archive", body: "The public transaction chains are curated real examples from the previous public vault, not seeded screenshots or mock rows." },
+  { label: "Verified proof chain", body: "The current public receipts come from the burn-address vault. The older vault remains public as archive, not as the active funded path." },
   { label: "Runtime verified", body: "Watcher status comes from the VPS heartbeat path, not from showcase fallback data." },
 ];
 
@@ -33,10 +40,11 @@ export default async function JudgeModePage() {
   const vaultAddress = getConfiguredVaultAddress();
   const hunterStatus = await getHunterRuntimeStatus();
   const hunterFeed = await readHunterFeed();
-  const proofs = await getCurrentMainnetProofs();
-  const slashProofBond = proofs.find((bond) => bond.id === showcaseProof.bondId) ?? null;
-  const refundBond = proofs.find((bond) => bond.id === refundProof.bondId) ?? null;
+  const [proofs, legacyArchive] = await Promise.all([getCurrentMainnetProofs(), getLegacyArchiveBonds()]);
+  const slashProofBond = proofs.find((bond) => bond.id === currentSlashProof.bondId) ?? null;
+  const refundBond = proofs.find((bond) => bond.id === currentRefundProof.bondId) ?? null;
   const recentHunterFeed = hunterFeed.slice(0, 6);
+  const legacyCount = legacyArchive.length;
   const watchedLabel = hunterStatus.watchedBondIds.length
     ? hunterStatus.watchedBondIds.join(", ")
     : hunterStatus.status === "online"
@@ -54,7 +62,7 @@ export default async function JudgeModePage() {
               <div className="label-mono">Judge packet</div>
               <h1 className="mt-3 hazard-title--sm">Claim. Proof. Limits.</h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
-                This page is the review packet. It shows the current configured vault, the historical mainnet proof chain, the live watcher context, and what the system does not claim to solve.
+                This page is the review packet. It shows the active burn-address vault, the current slash and refund proof chain, the live watcher context, and the narrow scope this system actually claims.
               </p>
             </div>
             <div className="hazard-card p-5 lg:w-[380px]">
@@ -76,8 +84,8 @@ export default async function JudgeModePage() {
                   value={hunterStatus.lastEventLabel ?? "no runtime action recorded yet"}
                 />
                 <Meta
-                  label="Latest archive proof"
-                  value={hunterStatus.lastArchiveEventLabel ?? "no archived proof recorded"}
+                  label="Latest verified proof"
+                  value={hunterStatus.lastArchiveEventLabel ?? "no verified proof recorded"}
                 />
                 <Meta label="Watched bonds" value={watchedLabel} />
               </div>
@@ -88,21 +96,21 @@ export default async function JudgeModePage() {
             <div className="label-mono">Review in this order</div>
             <div className="mt-3 grid gap-3 md:grid-cols-4">
               <Step index="01" body="Verify the contract and source." />
-              <Step index="02" body="Verify the slash and refund exhibits." />
+              <Step index="02" body="Verify the current slash and refund exhibits." />
               <Step index="03" body="Verify runtime heartbeat status." />
-              <Step index="04" body="Read the limitations, decide honest scope." />
+              <Step index="04" body="Check the legacy archive only after the active proof chain." />
             </div>
           </div>
         </div>
       </section>
 
       <section className="section-shell">
-        <div className="label-mono">Legacy proof archive</div>
+        <div className="label-mono">Current proof chain</div>
         <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-          Historical failure and success proofs are already public.
+          The active burn-address vault now has both paths public.
         </h2>
         <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/72">
-          These exhibits come from the previous public vault. The current active vault is the burn-address successor, and this archive remains public so reviewers can inspect earlier real mainnet outcomes without confusing them with the current funded flow.
+          These exhibits come from the current funded system at {activeProofVaultAddress}. They are the proof set to inspect first. The previous vault remains below as historical archive.
         </p>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
@@ -110,11 +118,11 @@ export default async function JudgeModePage() {
             <ExhibitCard
               exhibit="Exhibit A / slashed bond"
               title={`${slashProofBond.ticker} breached the declared floor.`}
-              description="The creator broke the retained-balance promise. Watcher flagged, third-party hunter captured the permissionless slash."
+              description="The creator broke the retained-balance promise. The breach was flagged onchain, then the slash settled on the burn-address vault. 80% paid the hunter, 20% burned."
               status="SLASHED"
               tone="slashed"
               metrics={[
-                { label: "Bond", value: `${slashProofBond.bondAmountBnb} BNB` },
+                { label: "Bond", value: `${slashProofBond.originalBondAmountBnb ?? slashProofBond.bondAmountBnb} BNB` },
                 { label: "Floor", value: slashProofBond.declaredFloor },
                 { label: "Balance at proof", value: slashProofBond.currentBalance },
                 ...(slashProofBond.liveCurrentBalance && slashProofBond.liveCurrentBalance !== slashProofBond.currentBalance
@@ -122,10 +130,10 @@ export default async function JudgeModePage() {
                   : []),
               ]}
               links={[
-                { label: "Launch", href: bscScanTxUrl(showcaseProof.launchTxHash), tone: "muted" },
-                { label: "Bond", href: bscScanTxUrl(showcaseProof.bondTxHash), tone: "yellow" },
-                { label: "Flag", href: bscScanTxUrl(showcaseProof.breachFlagTxHash), tone: "red" },
-                { label: "Slash", href: bscScanTxUrl(showcaseProof.slashTxHash), tone: "red" },
+                { label: "Launch", href: bscScanTxUrl(currentSlashProof.launchTxHash), tone: "muted" },
+                { label: "Bond", href: bscScanTxUrl(currentSlashProof.bondTxHash), tone: "yellow" },
+                { label: "Flag", href: bscScanTxUrl(currentSlashProof.breachFlagTxHash), tone: "red" },
+                { label: "Slash", href: bscScanTxUrl(currentSlashProof.slashTxHash), tone: "red" },
                 { label: "Four.Meme", href: fourMemeTokenUrl(slashProofBond.tokenAddress), tone: "muted" },
               ]}
             />
@@ -139,7 +147,7 @@ export default async function JudgeModePage() {
               status="REFUNDED"
               tone="refunded"
               metrics={[
-                { label: "Bond", value: `${refundBond.bondAmountBnb} BNB` },
+                { label: "Bond", value: `${refundBond.originalBondAmountBnb ?? refundBond.bondAmountBnb} BNB` },
                 { label: "Floor", value: refundBond.declaredFloor },
                 { label: "Balance at proof", value: refundBond.currentBalance },
                 ...(refundBond.liveCurrentBalance && refundBond.liveCurrentBalance !== refundBond.currentBalance
@@ -147,9 +155,9 @@ export default async function JudgeModePage() {
                   : []),
               ]}
               links={[
-                { label: "Launch", href: bscScanTxUrl(refundProof.launchTxHash), tone: "muted" },
-                { label: "Bond", href: bscScanTxUrl(refundProof.bondTxHash), tone: "yellow" },
-                { label: "Refund", href: bscScanTxUrl(refundProof.refundTxHash), tone: "lime" },
+                { label: "Launch", href: bscScanTxUrl(currentRefundProof.launchTxHash), tone: "muted" },
+                { label: "Bond", href: bscScanTxUrl(currentRefundProof.bondTxHash), tone: "yellow" },
+                { label: "Refund", href: bscScanTxUrl(currentRefundProof.refundTxHash), tone: "lime" },
                 { label: "Four.Meme", href: fourMemeTokenUrl(refundBond.tokenAddress), tone: "muted" },
               ]}
             />
@@ -178,8 +186,24 @@ export default async function JudgeModePage() {
             <div className="label-mono">How to read it</div>
             <div className="mt-4 space-y-4">
               <LongRow label="Runtime entries" body="Produced by the live VPS hunter while it watches or acts on bonds in the current vault." />
-              <LongRow label="Verified proof entries" body="Real historical launch, breach, slash, and refund events curated into the public record so the operating timeline stays inspectable." />
+              <LongRow label="Verified proof entries" body="Current-vault launch, breach, slash, and refund events are pinned here first. Older vault receipts remain below as archive." />
               <LongRow label="Proof-state vs live-state" body="Exhibit balances show the value at the proof moment. If current chain state drifted later, the live value appears separately." />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section-shell mt-12">
+        <div className="hazard-card p-6">
+          <div className="label-mono">Legacy archive</div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+            <p className="max-w-3xl text-sm leading-relaxed text-white/75">
+              The previous vault {legacyProofVaultAddress} stays public as historical inspection material. It should not be confused with the active burn-address vault or the current funded demo flow.
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <Meta label="Archived receipts" value={String(legacyCount)} />
+              <Meta label="Archive vault" value={`${legacyProofVaultAddress.slice(0, 8)}…${legacyProofVaultAddress.slice(-6)}`} mono />
+              <Meta label="Role" value="history only" />
             </div>
           </div>
         </div>
@@ -231,6 +255,7 @@ export default async function JudgeModePage() {
               <InspectRow label="Create flow" body="Confirm it requires real Four.Meme parse evidence before signing." />
               <InspectRow label="Proof pages" body="Follow launch, bond, breach/refund, and certificate links." />
               <InspectRow label="Runtime" body="Check heartbeat and watched-bond output on the hero card." />
+              <InspectRow label="Burn leg" body="The slash path on the current vault burns the 20% protocol leg at the dead address." />
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
               {vaultAddress ? (

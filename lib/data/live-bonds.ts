@@ -4,8 +4,19 @@ import { erc20MetadataAbi } from "@/lib/chain/erc20";
 import { rugBountyVaultAbi } from "@/lib/chain/rug-bounty";
 
 const cleanEnv = (value?: string | null) => value?.trim() || undefined;
+const activeVaultAddress = getAddress("0x8456e375259faab451c6906ba8ac22b1cd8ae1c8");
 const knownVaultStartBlocks: Partial<Record<Address, bigint>> = {
-  [getAddress("0x8456e375259faab451c6906ba8ac22b1cd8ae1c8")]: 93983877n,
+  [activeVaultAddress]: 93983877n,
+};
+const knownLiveBondOrigins: Partial<Record<`${Address}:${string}`, { originalBondAmountBnb: string; bondTxHash: Hex }>> = {
+  [`${activeVaultAddress}:0`]: {
+    originalBondAmountBnb: "0.003",
+    bondTxHash: "0x51da87a3ec3a08a752b65cdd10877c3d7bbd3a090ac89ba52d0aae176f5288a9",
+  },
+  [`${activeVaultAddress}:1`]: {
+    originalBondAmountBnb: "0.005",
+    bondTxHash: "0x5c8ea971109c72b5b500f77116673afd1ca1fa9a5ca4f2569bc6aa8c0657af4c",
+  },
 };
 
 export type LiveBondRecord = {
@@ -98,11 +109,12 @@ export async function getLiveBondById(id: string): Promise<LiveBondRecord | null
 
     const baseStatus = bond.status === 1 ? "SLASHED" : bond.status === 2 ? "REFUNDED" : "ACTIVE";
     const status = baseStatus === "ACTIVE" && currentBalance < bond.declaredRetainedBalance ? "AT_RISK" : baseStatus;
+    const knownOrigin = knownLiveBondOrigins[`${vaultAddress}:${id}`];
     const originalBondAmountBnb =
       createdLog && typeof createdLog.args.bondAmount === "bigint"
         ? formatEther(createdLog.args.bondAmount)
-        : undefined;
-    const bondTxHash = createdLog?.transactionHash;
+        : knownOrigin?.originalBondAmountBnb;
+    const bondTxHash = createdLog?.transactionHash ?? knownOrigin?.bondTxHash;
 
     return {
       id,

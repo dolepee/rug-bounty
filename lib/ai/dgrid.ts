@@ -30,7 +30,7 @@ const classificationResponseSchema = z.object({
 
 const dgridApiKey = cleanEnv(process.env.DGRID_API_KEY);
 const dgridBaseUrl = cleanEnv(process.env.DGRID_BASE_URL) || "https://api.dgrid.ai/v1";
-const dgridModel = cleanEnv(process.env.DGRID_MODEL) || "openai/gpt-4o";
+const dgridModel = cleanEnv(process.env.DGRID_MODEL) || "openai/gpt-5.4-mini";
 
 function getDgridClient() {
   if (!dgridApiKey) {

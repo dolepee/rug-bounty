@@ -353,7 +353,7 @@ function ActiveBondRow({ bond }: { bond: LiveBondRecord }) {
         </div>
       </div>
       <div className="font-mono text-sm text-white/90">
-        {Number(bond.bondAmountBnb).toFixed(4)} <span className="text-[var(--fg-muted)]">BNB</span>
+        {Number(bond.originalBondAmountBnb ?? bond.bondAmountBnb).toFixed(4)} <span className="text-[var(--fg-muted)]">BNB</span>
       </div>
       <div className="font-mono text-sm text-white/90">{formatNumber(bond.declaredFloor)}</div>
       <div>

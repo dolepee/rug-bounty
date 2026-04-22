@@ -149,9 +149,13 @@ export async function getCurrentMainnetProofs(): Promise<ShowcaseBond[]> {
   return [slashProofBond, refundProofBond].filter((bond): bond is ShowcaseBond => Boolean(bond));
 }
 
-export async function getDirectoryBonds(): Promise<ShowcaseBond[]> {
+export async function getLegacyArchiveBonds(): Promise<ShowcaseBond[]> {
   const currentProofs = await getCurrentMainnetProofs();
   return [...currentProofs, archivedShowcaseBond];
+}
+
+export async function getDirectoryBonds(): Promise<ShowcaseBond[]> {
+  return getLegacyArchiveBonds();
 }
 
 export async function getBrokenOathBonds(): Promise<ShowcaseBond[]> {

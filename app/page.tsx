@@ -1,28 +1,22 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Bot, ShieldCheck, Sparkles } from "lucide-react";
-import {
-  getCurrentMainnetProofs,
-  getDirectoryBonds,
-  legacyProofVaultAddress,
-  refundProof,
-  showcaseProof,
-  type ShowcaseBond,
-} from "@/lib/data/showcase";
+import { getLegacyArchiveBonds, legacyProofVaultAddress } from "@/lib/data/showcase";
 import { getHunterRuntimeStatus } from "@/lib/data/hunter-status";
-import { bscScanTxUrl } from "@/lib/fourmeme/links";
+import { getLiveVaultBonds, type LiveBondRecord } from "@/lib/data/live-bonds";
 
 export const dynamic = "force-dynamic";
 
 type StatusVariant = "slashed" | "refunded" | "active";
 
 export default async function HomePage() {
-  const currentProofs = await getCurrentMainnetProofs();
-  const bonds = await getDirectoryBonds();
-  const hunterStatus = await getHunterRuntimeStatus();
+  const [activeVaultBonds, legacyArchiveBonds, hunterStatus] = await Promise.all([
+    getLiveVaultBonds(),
+    getLegacyArchiveBonds(),
+    getHunterRuntimeStatus(),
+  ]);
 
-  const slashBond = currentProofs.find((bond) => bond.id === showcaseProof.bondId) ?? null;
-  const refundBond = currentProofs.find((bond) => bond.id === refundProof.bondId) ?? null;
+  const latestActiveBond = activeVaultBonds[0] ?? null;
 
   const watched = hunterStatus.watchedBondIds.length;
   const hunterLine =
@@ -66,8 +60,8 @@ export default async function HomePage() {
 
               <div className="mt-10 grid max-w-4xl gap-4 sm:grid-cols-3">
                 <HeroStat label="Current vault" value={hunterStatus.vaultAddress ? shortenAddress(hunterStatus.vaultAddress) : "unconfigured"} mono />
-                <HeroStat label="Legacy proofs" value={`${currentProofs.length} archived`} />
-                <HeroStat label="Network" value="BNB mainnet" />
+                <HeroStat label="Active bonds" value={String(activeVaultBonds.length)} />
+                <HeroStat label="Watcher" value={hunterStatus.status.toUpperCase()} />
               </div>
             </div>
 
@@ -87,30 +81,33 @@ export default async function HomePage() {
 
               <div className="mt-6 space-y-3">
                 <SystemRow label="Vault source" value="Verified on BscScan" accent="lime" />
-                <SystemRow label="Archive vault" value={shortenAddress(legacyProofVaultAddress)} mono />
+                <SystemRow label="Funded flow" value="Current vault only" />
                 <SystemRow label="Watcher runtime" value={hunterStatus.lastTickIso ? new Date(hunterStatus.lastTickIso).toLocaleString() : "heartbeat unavailable"} />
-                <SystemRow label="Latest runtime event" value={hunterStatus.lastEventLabel ?? "no runtime action recorded yet"} />
-                <SystemRow label="Latest archive proof" value={hunterStatus.lastArchiveEventLabel ?? "no archived proof recorded"} />
-                <SystemRow label="Slash proof" value={showcaseProof.slashTxHash.slice(0, 10) + "…" + showcaseProof.slashTxHash.slice(-6)} mono accent="red" />
-                <SystemRow label="Refund proof" value={refundProof.refundTxHash.slice(0, 10) + "…" + refundProof.refundTxHash.slice(-6)} mono accent="lime" />
+                <SystemRow label="Latest event" value={hunterStatus.lastEventLabel ?? "no runtime action recorded yet"} />
+                <SystemRow
+                  label="Latest active bond"
+                  value={
+                    latestActiveBond
+                      ? `${latestActiveBond.ticker} / ${latestActiveBond.status}`
+                      : "no current-vault bond published yet"
+                  }
+                />
+                <SystemRow label="Legacy archive" value={`${legacyArchiveBonds.length} historical receipts`} />
+                <SystemRow label="Archive vault" value={shortenAddress(legacyProofVaultAddress)} mono />
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <MiniProofCard
-                  eyebrow="Failure path"
-                  ticker={slashBond?.ticker ?? "$FSLH"}
-                  title="Breached floor, flagged, slashed."
-                  body="Historical verified proof where the creator sold below the declared floor and the bond was taken in the permissionless race."
-                  href={slashBond ? `/bond/${slashBond.id}${slashBond.bondTxHash ? `?bondTxHash=${slashBond.bondTxHash}` : ""}` : "/directory"}
-                  tone="red"
+                <MiniBriefCard
+                  eyebrow="Current vault"
+                  title="Fresh funded tests land here first."
+                  body="Create, judge, and runtime all point at the active burn-address vault. New bonds should appear under Proofs without replacing the archive."
+                  href="/create"
                 />
-                <MiniProofCard
-                  eyebrow="Success path"
-                  ticker={refundBond?.ticker ?? "$FRFD"}
-                  title="Held through expiry, refunded cleanly."
-                  body="Historical verified proof where the balance stayed above floor and the creator reclaimed the bond after the hunter window."
-                  href={refundBond ? `/bond/${refundBond.id}${refundBond.bondTxHash ? `?bondTxHash=${refundBond.bondTxHash}` : ""}` : "/directory"}
-                  tone="lime"
+                <MiniBriefCard
+                  eyebrow="Legacy archive"
+                  title="Earlier receipts stay inspectable."
+                  body="The previous public vault remains available as history. It supports credibility, but it is no longer the active funded flow."
+                  href="/directory"
                 />
               </div>
             </div>
@@ -157,98 +154,74 @@ export default async function HomePage() {
       <section className="section-shell mt-16 md:mt-20">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <div className="label-mono">Legacy proof archive</div>
+            <div className="label-mono">Current vault receipts</div>
             <h2 className="mt-3 font-display text-3xl md:text-4xl font-extrabold tracking-tight">
-              The previous public vault already proved both outcomes.
+              Fresh tests should surface here automatically.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/70">
-              Reviewers do not need to imagine the system. The earlier public vault already recorded both the slash path and the refund path. The current burn-address vault is the hardened successor now used for fresh testing.
+              The active burn-address vault is the official funded system. When a new bond is created, refunded, or slashed on the current vault, it belongs in this section without rewriting the site narrative.
             </p>
           </div>
           <Link
             href="/directory"
             className="hidden items-center gap-1 font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--fg-muted)] hover:text-white sm:inline-flex"
           >
-            View all proofs <ArrowUpRight className="h-3.5 w-3.5" />
+            Open proofs <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
-        <div className="mt-8 grid gap-5 lg:grid-cols-2">
-          {slashBond ? (
-            <BondCard
-              bond={slashBond}
-              kind="slash"
-              primaryTx={{ label: "Slash tx", href: bscScanTxUrl(showcaseProof.slashTxHash), hash: showcaseProof.slashTxHash }}
-              trail={[
-                { label: "Launch", href: bscScanTxUrl(showcaseProof.launchTxHash), hash: showcaseProof.launchTxHash },
-                { label: "Bond", href: bscScanTxUrl(showcaseProof.bondTxHash), hash: showcaseProof.bondTxHash },
-                { label: "Flag", href: bscScanTxUrl(showcaseProof.breachFlagTxHash), hash: showcaseProof.breachFlagTxHash },
-              ]}
-              moment={{ label: "Slashed", iso: showcaseProof.slashedAtIso }}
-            />
-          ) : null}
-
-          {refundBond ? (
-            <BondCard
-              bond={refundBond}
-              kind="refund"
-              primaryTx={{ label: "Refund tx", href: bscScanTxUrl(refundProof.refundTxHash), hash: refundProof.refundTxHash }}
-              trail={[
-                { label: "Launch", href: bscScanTxUrl(refundProof.launchTxHash), hash: refundProof.launchTxHash },
-                { label: "Bond", href: bscScanTxUrl(refundProof.bondTxHash), hash: refundProof.bondTxHash },
-              ]}
-              moment={{ label: "Refunded", iso: refundProof.refundedAtIso }}
-            />
-          ) : null}
-        </div>
+        {activeVaultBonds.length ? (
+          <div className="mt-6 hazard-table">
+            <div className="hazard-table__head">
+              <div>Token</div>
+              <div>Bond</div>
+              <div>Floor</div>
+              <div>Status</div>
+              <div>Expiry</div>
+            </div>
+            {activeVaultBonds.map((bond) => (
+              <ActiveBondRow key={bond.id} bond={bond} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 hazard-card p-6 md:p-8">
+            <div className="label-mono">No current-vault proof published yet</div>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/72">
+              The active vault is configured and the watcher is online, but there is no public receipt on the current funded path yet. Use the create flow for fresh tests; the earlier vault remains available as archive only.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link href="/create" className="btn-hazard">
+                Open create flow
+              </Link>
+              <Link href="/directory" className="btn-outline">
+                Inspect legacy archive
+              </Link>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="section-shell mt-16">
-        <div className="flex items-end justify-between gap-4">
-          <div className="label-mono">Full directory</div>
-          <Link
-            href="/directory"
-            className="font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--fg-muted)] hover:text-white"
-          >
-            Open directory →
-          </Link>
-        </div>
-        <div className="mt-4 hazard-table">
-          <div className="hazard-table__head">
-            <div>Token</div>
-            <div>Bond</div>
-            <div>Floor</div>
-            <div>Status</div>
-            <div>Expiry</div>
+        <div className="hazard-card p-6 md:p-8">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="label-mono">Legacy archive</div>
+              <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+                Earlier public receipts stay available as history.
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/72">
+                The previous public vault already proved slash and refund outcomes onchain. That archive remains public for inspection, but it is no longer the active funded path.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/directory" className="btn-outline">
+                Open archive
+              </Link>
+              <Link href="/judge" className="btn-outline">
+                Review evidence
+              </Link>
+            </div>
           </div>
-          {bonds.map((bond) => (
-            <Link
-              key={bond.id}
-              href={`/bond/${bond.id}${bond.bondTxHash ? `?bondTxHash=${bond.bondTxHash}` : ""}`}
-              className="hazard-table__row"
-            >
-              <div>
-                <div className="font-display text-lg font-extrabold tracking-tight text-white">
-                  {bond.ticker}
-                </div>
-                <div className="mt-0.5 font-mono text-[11px] text-[var(--fg-muted)]">
-                  {bond.tokenName}
-                </div>
-              </div>
-              <div className="font-mono text-sm text-white/90">
-                {Number(bond.bondAmountBnb).toFixed(4)} <span className="text-[var(--fg-muted)]">BNB</span>
-              </div>
-              <div className="font-mono text-sm text-white/90">{formatNumber(bond.declaredFloor)}</div>
-              <div>
-                <span className={`status-badge status-badge--${statusVariant(bond.status)}`}>
-                  {bond.status}
-                </span>
-              </div>
-              <div className="font-mono text-xs text-[var(--fg-muted)]">
-                {new Date(bond.expiresAtIso).toLocaleString()}
-              </div>
-            </Link>
-          ))}
         </div>
       </section>
 
@@ -336,29 +309,20 @@ function SystemRow({
   );
 }
 
-function MiniProofCard({
+function MiniBriefCard({
   eyebrow,
-  ticker,
   title,
   body,
   href,
-  tone,
 }: {
   eyebrow: string;
-  ticker: string;
   title: string;
   body: string;
   href: string;
-  tone: "red" | "lime";
 }) {
   return (
     <Link href={href} className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition hover:border-white/14 hover:bg-white/[0.03]">
-      <div className="flex items-center justify-between gap-3">
-        <span className="label-mono">{eyebrow}</span>
-        <span className={`status-badge ${tone === "red" ? "status-badge--slashed" : "status-badge--refunded"}`}>
-          {ticker}
-        </span>
-      </div>
+      <span className="label-mono">{eyebrow}</span>
       <h3 className="mt-3 text-base font-semibold tracking-[-0.02em] text-white">{title}</h3>
       <p className="mt-2 text-xs leading-relaxed text-white/68">{body}</p>
     </Link>
@@ -374,110 +338,32 @@ function QuickFeature({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BondCard({
-  bond,
-  primaryTx,
-  trail,
-  moment,
-}: {
-  bond: ShowcaseBond;
-  kind: "slash" | "refund";
-  primaryTx: { label: string; href: string; hash: string };
-  trail: Array<{ label: string; href: string; hash: string }>;
-  moment: { label: string; iso: string };
-}) {
-  const variant = statusVariant(bond.status);
-  const floor = Number(bond.declaredFloor);
-  const proofBalance = Number(bond.currentBalance);
-  const liveBalance = bond.liveCurrentBalance ? Number(bond.liveCurrentBalance) : null;
-  const raw = floor > 0 ? (proofBalance / floor) * 100 : 0;
-  const gaugePct = Math.max(0, Math.min(100, raw));
-  const gaugeFill = variant === "refunded" ? "lime" : variant === "slashed" ? "red" : "yellow";
-  const liveContextChanged =
-    typeof liveBalance === "number" &&
-    Number.isFinite(liveBalance) &&
-    Math.abs(liveBalance - proofBalance) > 0.000001;
-
+function ActiveBondRow({ bond }: { bond: LiveBondRecord }) {
   return (
     <Link
-      href={`/bond/${bond.id}${bond.bondTxHash ? `?bondTxHash=${bond.bondTxHash}` : ""}`}
-      className={`hazard-card hazard-card--${variant} block p-6 md:p-7 group`}
+      href={`/bond/${bond.id}`}
+      className="hazard-table__row"
     >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="label-mono">{bond.tokenName}</div>
-          <div className="mt-1 font-display text-4xl font-extrabold tracking-tight text-white">
-            {bond.ticker}
-          </div>
+      <div>
+        <div className="font-display text-lg font-extrabold tracking-tight text-white">
+          {bond.ticker}
         </div>
-        <span className={`status-badge status-badge--${variant}`}>
-          <span className={`live-dot live-dot--${gaugeFill}`} />
+        <div className="mt-0.5 font-mono text-[11px] text-[var(--fg-muted)]">
+          {bond.tokenName}
+        </div>
+      </div>
+      <div className="font-mono text-sm text-white/90">
+        {Number(bond.bondAmountBnb).toFixed(4)} <span className="text-[var(--fg-muted)]">BNB</span>
+      </div>
+      <div className="font-mono text-sm text-white/90">{formatNumber(bond.declaredFloor)}</div>
+      <div>
+        <span className={`status-badge status-badge--${statusVariant(bond.status)}`}>
+          <span className={`live-dot live-dot--${statusDot(bond.status)}`} />
           {bond.status}
         </span>
       </div>
-
-      <div className="mt-7 grid grid-cols-2 gap-6">
-        <div>
-          <div className="label-mono">Bond</div>
-          <div className="giant giant--card mt-2 text-[var(--yellow)]">
-            {Number(bond.bondAmountBnb).toFixed(3)}
-            <span className="ml-1 text-lg text-white/50">BNB</span>
-          </div>
-        </div>
-        <div>
-          <div className="label-mono">Floor</div>
-          <div className="giant giant--card mt-2 text-white">{formatNumber(bond.declaredFloor)}</div>
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <div className="flex items-center justify-between">
-          <span className="label-mono">Balance at proof</span>
-          <span className="font-mono text-xs text-white/80">{formatNumber(bond.currentBalance)}</span>
-        </div>
-        <div className="floor-gauge mt-2">
-          <div className={`floor-gauge__fill floor-gauge__fill--${gaugeFill}`} style={{ width: `${gaugePct}%` }} />
-        </div>
-        <div className="mt-2 flex items-center justify-between font-mono text-[10.5px] uppercase tracking-[0.2em] text-[var(--fg-muted)]">
-          <span>0</span>
-          <span>{gaugePct.toFixed(1)}% of floor</span>
-        </div>
-        {liveContextChanged ? (
-          <div className="mt-3 rounded-2xl border border-white/7 bg-white/[0.02] px-3 py-2">
-            <div className="flex items-center justify-between gap-3">
-              <span className="label-mono">Current live balance</span>
-              <span className="font-mono text-xs text-white/80">{formatNumber(String(liveBalance))}</span>
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="mt-6 flex flex-wrap gap-2">
-        {trail.map((tx) => (
-          <span key={tx.label} className="hash-pill">
-            {tx.label} {tx.hash.slice(0, 6)}…{tx.hash.slice(-4)}
-          </span>
-        ))}
-        <span className={`hash-pill hash-pill--${gaugeFill === "lime" ? "lime" : gaugeFill === "red" ? "red" : "yellow"}`}>
-          {primaryTx.label} {primaryTx.hash.slice(0, 6)}…{primaryTx.hash.slice(-4)}
-        </span>
-      </div>
-
-      <div className="mt-6 flex items-end justify-between gap-4">
-        <p className="text-sm leading-relaxed text-white/70 max-w-md">{bond.notes}</p>
-        <div className="flex-shrink-0 text-right">
-          <div className="label-mono">{moment.label}</div>
-          <div className="mt-1 font-mono text-xs text-white/80">
-            {new Date(moment.iso).toLocaleString()}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5 flex items-center justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--yellow)] group-hover:text-white transition-colors">
-          Open receipt
-        </span>
-        <ArrowUpRight className="h-4 w-4 text-[var(--yellow)] group-hover:text-white transition-colors" />
+      <div className="font-mono text-xs text-[var(--fg-muted)]">
+        {new Date(bond.expiresAtIso).toLocaleString()}
       </div>
     </Link>
   );
@@ -487,6 +373,12 @@ function statusVariant(status: string): StatusVariant {
   if (status === "SLASHED") return "slashed";
   if (status === "REFUNDED") return "refunded";
   return "active";
+}
+
+function statusDot(status: string): "red" | "lime" | "yellow" {
+  if (status === "SLASHED") return "red";
+  if (status === "REFUNDED") return "lime";
+  return "yellow";
 }
 
 function formatNumber(raw: string): string {

@@ -73,6 +73,13 @@ export const rugBountyVaultAbi = [
     outputs: [{ name: "", type: "uint256" }],
   },
   {
+    type: "function",
+    name: "nextBondId",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
     type: "event",
     name: "BondCreated",
     anonymous: false,

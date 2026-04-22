@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
-import { getDirectoryBonds } from "@/lib/data/showcase";
+import { getLegacyArchiveBonds } from "@/lib/data/showcase";
+import { getConfiguredVaultAddress, getLiveVaultBonds } from "@/lib/data/live-bonds";
 
 export async function GET() {
-  return NextResponse.json({ bonds: await getDirectoryBonds() });
+  const [currentVaultBonds, legacyArchive] = await Promise.all([getLiveVaultBonds(), getLegacyArchiveBonds()]);
+  return NextResponse.json({
+    currentVaultAddress: getConfiguredVaultAddress(),
+    currentVaultBonds,
+    legacyArchive,
+    bonds: [...currentVaultBonds, ...legacyArchive],
+  });
 }

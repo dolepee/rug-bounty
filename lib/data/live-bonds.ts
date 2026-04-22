@@ -107,3 +107,31 @@ export async function getLiveBondById(id: string): Promise<LiveBondRecord | null
     return null;
   }
 }
+
+export async function getLiveVaultBonds(): Promise<LiveBondRecord[]> {
+  const vaultAddress = getConfiguredVaultAddress();
+  if (!vaultAddress) {
+    return [];
+  }
+
+  const client = getBscPublicClient();
+
+  try {
+    const nextBondId = await client.readContract({
+      address: vaultAddress,
+      abi: rugBountyVaultAbi,
+      functionName: "nextBondId",
+      args: [],
+    });
+
+    if (nextBondId === 0n) {
+      return [];
+    }
+
+    const ids = Array.from({ length: Number(nextBondId) }, (_, index) => String(Number(nextBondId) - 1 - index));
+    const bonds = await Promise.all(ids.map((id) => getLiveBondById(id)));
+    return bonds.filter((bond): bond is LiveBondRecord => Boolean(bond));
+  } catch {
+    return [];
+  }
+}

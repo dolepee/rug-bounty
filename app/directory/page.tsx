@@ -10,7 +10,6 @@ type StatusVariant = "slashed" | "refunded" | "active";
 export default async function DirectoryPage() {
   const [currentVaultBonds, legacyArchiveBonds] = await Promise.all([getLiveVaultBonds(), getLegacyArchiveBonds()]);
   const currentVaultAddress = getConfiguredVaultAddress();
-  const archiveSlashedCount = legacyArchiveBonds.filter((bond) => bond.status === "SLASHED").length;
   const archiveRefundedCount = legacyArchiveBonds.filter((bond) => bond.status === "REFUNDED").length;
 
   return (
@@ -20,10 +19,10 @@ export default async function DirectoryPage() {
         <div className="section-shell py-12 md:py-16">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <div className="label-mono">Proof register</div>
-              <h1 className="mt-3 hazard-title--sm">Current vault first. Archive second.</h1>
+              <div className="label-mono">Proofs</div>
+              <h1 className="mt-3 hazard-title--sm">Live receipts, then archive.</h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
-                The active burn-address vault is the official funded system. Historical receipts stay available below as archive evidence, but they are no longer the primary product path.
+                The active vault is the live system. Older receipts stay below as reference.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -34,7 +33,7 @@ export default async function DirectoryPage() {
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
             <Link href="/broken-oaths" className="btn-outline">
-              Open slashed-only view <ArrowUpRight className="h-3.5 w-3.5" />
+              Slashed only <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
@@ -44,11 +43,9 @@ export default async function DirectoryPage() {
         <div className="flex items-end justify-between gap-4">
           <div>
             <div className="label-mono">Current vault</div>
-            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-              Fresh funded tests should appear here automatically.
-            </h2>
+            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">Live receipts</h2>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
-              This section is driven by the active configured vault, not by static receipt rows. If you create or resolve a bond on the current vault, it belongs here.
+              New funded tests on the active vault should show up here.
             </p>
           </div>
         </div>
@@ -60,27 +57,27 @@ export default async function DirectoryPage() {
           />
         ) : (
           <div className="mt-6 hazard-card p-6">
-            <div className="label-mono">No current-vault receipts yet</div>
+            <div className="label-mono">No live receipts yet</div>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/75">
-              The active vault {currentVaultAddress ? `(${shortenAddress(currentVaultAddress)})` : ""} is ready, but there is no public receipt on the current funded path yet. Run the next funded test through Create, then come back here.
+              The active vault {currentVaultAddress ? `(${shortenAddress(currentVaultAddress)})` : ""} is ready. Run the next funded test through Create, then check this page again.
             </p>
           </div>
         )}
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <GuideCard
-            title="Official vault"
-            body={currentVaultAddress ? `The active funded flow now points to ${shortenAddress(currentVaultAddress)}.` : "The active funded flow is configured in create and judge mode."}
+            title="Vault"
+            body={currentVaultAddress ? `Active flow: ${shortenAddress(currentVaultAddress)}.` : "Active flow is configured in create and judge mode."}
             dot="yellow"
           />
           <GuideCard
-            title="Runtime remains live"
-            body="Watcher heartbeat and future funded tests should map to the active vault, not to archive receipts."
+            title="Runtime"
+            body="Watcher heartbeat follows the active vault."
             dot="yellow"
           />
           <GuideCard
-            title="Archive stays visible"
-            body={`The earlier proof set remains inspectable as historical evidence. It currently contains ${legacyArchiveBonds.length} public receipts, including ${archiveSlashedCount} slashed outcomes.`}
+            title="Archive"
+            body={`${legacyArchiveBonds.length} historical receipts remain below.`}
             dot="muted"
           />
         </div>
@@ -89,12 +86,10 @@ export default async function DirectoryPage() {
       <section className="section-shell mt-12">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <div className="label-mono">Legacy archive</div>
-            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-              Earlier public receipts stay available as history.
-            </h2>
+            <div className="label-mono">Archive</div>
+            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">Past receipts</h2>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
-              These rows preserve proof-state values from the earlier public vaults. They support credibility, but they should not be mistaken for the active funded system.
+              Earlier public receipts kept for reference.
             </p>
           </div>
         </div>

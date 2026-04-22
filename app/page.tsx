@@ -64,8 +64,8 @@ export default async function HomePage() {
               </div>
 
               <div className="mt-10 grid max-w-4xl gap-4 sm:grid-cols-3">
-                <HeroStat label="Final vault" value={hunterStatus.vaultAddress ? shortenAddress(hunterStatus.vaultAddress) : "unconfigured"} mono />
-                <HeroStat label="Outcome proofs" value={`${currentProofs.length} verified`} />
+                <HeroStat label="Current vault" value={hunterStatus.vaultAddress ? shortenAddress(hunterStatus.vaultAddress) : "unconfigured"} mono />
+                <HeroStat label="Historical proofs" value={`${currentProofs.length} verified`} />
                 <HeroStat label="Network" value="BNB mainnet" />
               </div>
             </div>
@@ -97,7 +97,7 @@ export default async function HomePage() {
                   eyebrow="Failure path"
                   ticker={slashBond?.ticker ?? "$FSLH"}
                   title="Breached floor, flagged, slashed."
-                  body="Final vault proof where the creator sold below the declared floor and the bond was taken in the permissionless race."
+                  body="Historical verified proof where the creator sold below the declared floor and the bond was taken in the permissionless race."
                   href={slashBond ? `/bond/${slashBond.id}${slashBond.bondTxHash ? `?bondTxHash=${slashBond.bondTxHash}` : ""}` : "/directory"}
                   tone="red"
                 />
@@ -105,7 +105,7 @@ export default async function HomePage() {
                   eyebrow="Success path"
                   ticker={refundBond?.ticker ?? "$FRFD"}
                   title="Held through expiry, refunded cleanly."
-                  body="Final vault proof where the balance stayed above floor and the creator reclaimed the bond after the hunter window."
+                  body="Historical verified proof where the balance stayed above floor and the creator reclaimed the bond after the hunter window."
                   href={refundBond ? `/bond/${refundBond.id}${refundBond.bondTxHash ? `?bondTxHash=${refundBond.bondTxHash}` : ""}` : "/directory"}
                   tone="lime"
                 />

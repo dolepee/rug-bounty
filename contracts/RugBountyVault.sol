@@ -14,7 +14,7 @@ contract RugBountyVault {
     uint256 public constant MIN_BOND = 0.003 ether;
     uint256 public constant HUNTER_PAYOUT_BPS = 8000; // 80%
     uint256 public constant PROTOCOL_PAYOUT_BPS = 2000; // 20%
-    address payable public constant PROTOCOL_TREASURY = payable(0xbad35FA6e368e90fC4faf63507F2D0A2Fdf94BAF);
+    address payable public constant PROTOCOL_TREASURY = payable(0x000000000000000000000000000000000000dEaD);
 
     enum BondStatus {
         ACTIVE,

@@ -579,7 +579,7 @@ export default function CreateBondPage() {
               </div>
 
               <p className="mt-4 font-mono text-[11px] leading-relaxed text-[var(--fg-muted)]">
-                Demo note: during the hackathon period, the 20% protocol leg routes to an author-controlled treasury. Production deployments should point it at a burn, DAO, or multisig.
+                This vault routes the 20% protocol leg to the burn address so self-slash always destroys real value.
               </p>
 
               {submitError ? <ErrorBox message={submitError} /> : null}

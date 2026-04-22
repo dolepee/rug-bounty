@@ -26,7 +26,7 @@ const limits = [
   "This does not detect hidden undeclared wallets.",
   "The vault records launch metadata for display, but does not prove Four.Meme history onchain.",
   "Slash is permissionless. A third-party hunter can beat the watcher to the bounty.",
-  "During the hackathon demo, the 20% protocol leg routes to an author-controlled treasury.",
+  "The current vault routes the 20% protocol leg to the burn address.",
 ];
 
 export default async function JudgeModePage() {
@@ -54,7 +54,7 @@ export default async function JudgeModePage() {
               <div className="label-mono">Judge packet</div>
               <h1 className="mt-3 hazard-title--sm">Claim. Proof. Limits.</h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
-                This page is the review packet. It shows the exact claim, the mainnet proof chain, the live watcher context, and what the system does not claim to solve.
+                This page is the review packet. It shows the current configured vault, the historical mainnet proof chain, the live watcher context, and what the system does not claim to solve.
               </p>
             </div>
             <div className="hazard-card p-5 lg:w-[380px]">
@@ -94,7 +94,7 @@ export default async function JudgeModePage() {
       <section className="section-shell">
         <div className="label-mono">Mainnet exhibits</div>
         <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-          Failure path and success path are both already public.
+          Historical failure and success proofs are already public.
         </h2>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">

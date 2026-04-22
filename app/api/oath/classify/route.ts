@@ -24,6 +24,26 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = schema.parse(await request.json());
-  return NextResponse.json(await classifyPromisesWithFallback(body.text));
+  let json: unknown;
+  try {
+    json = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const parsed = schema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Invalid request body.",
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      },
+      { status: 400 },
+    );
+  }
+
+  return NextResponse.json(await classifyPromisesWithFallback(parsed.data.text));
 }

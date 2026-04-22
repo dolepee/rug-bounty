@@ -72,8 +72,12 @@ export default async function JudgeModePage() {
                   value={hunterStatus.lastTickIso ? new Date(hunterStatus.lastTickIso).toLocaleString() : "unknown"}
                 />
                 <Meta
-                  label="Latest event"
-                  value={hunterStatus.lastEventLabel ?? "no public event recorded"}
+                  label="Latest runtime event"
+                  value={hunterStatus.lastEventLabel ?? "no runtime action recorded yet"}
+                />
+                <Meta
+                  label="Latest archive proof"
+                  value={hunterStatus.lastArchiveEventLabel ?? "no archived proof recorded"}
                 />
                 <Meta label="Watched bonds" value={watchedLabel} />
               </div>

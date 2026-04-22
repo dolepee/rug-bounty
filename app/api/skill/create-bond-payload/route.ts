@@ -96,9 +96,29 @@ export async function buildCreateBondPayload(body: z.infer<typeof schema>, parse
 }
 
 export async function POST(request: Request) {
+  let json: unknown;
   try {
-    const body = schema.parse(await request.json());
-    return NextResponse.json(await buildCreateBondPayload(body));
+    json = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const parsed = schema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Invalid request body.",
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      },
+      { status: 400 },
+    );
+  }
+
+  try {
+    return NextResponse.json(await buildCreateBondPayload(parsed.data));
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not build a Four.Meme-bonded createBond payload." },

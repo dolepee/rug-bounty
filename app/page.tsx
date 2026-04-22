@@ -89,7 +89,8 @@ export default async function HomePage() {
                 <SystemRow label="Vault source" value="Verified on BscScan" accent="lime" />
                 <SystemRow label="Archive vault" value={shortenAddress(legacyProofVaultAddress)} mono />
                 <SystemRow label="Watcher runtime" value={hunterStatus.lastTickIso ? new Date(hunterStatus.lastTickIso).toLocaleString() : "heartbeat unavailable"} />
-                <SystemRow label="Latest event" value={hunterStatus.lastEventLabel ?? "no public event recorded"} />
+                <SystemRow label="Latest runtime event" value={hunterStatus.lastEventLabel ?? "no runtime action recorded yet"} />
+                <SystemRow label="Latest archive proof" value={hunterStatus.lastArchiveEventLabel ?? "no archived proof recorded"} />
                 <SystemRow label="Slash proof" value={showcaseProof.slashTxHash.slice(0, 10) + "…" + showcaseProof.slashTxHash.slice(-6)} mono accent="red" />
                 <SystemRow label="Refund proof" value={refundProof.refundTxHash.slice(0, 10) + "…" + refundProof.refundTxHash.slice(-6)} mono accent="lime" />
               </div>

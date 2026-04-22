@@ -220,12 +220,13 @@ test("hunter runtime status remains unknown without a configured runtime snapsho
   delete process.env.RUG_BOUNTY_VAULT_ADDRESS;
 
   try {
-    const statusModule = getModuleExports<{ getHunterRuntimeStatus: () => Promise<{ status: string; lastResolvedTxHash: string | null }> }>(
+    const statusModule = getModuleExports<{ getHunterRuntimeStatus: () => Promise<{ status: string; lastResolvedTxHash: string | null; lastArchiveEventLabel: string | null }> }>(
       await import("../lib/data/hunter-status.ts"),
     );
     const status = await statusModule.getHunterRuntimeStatus();
     assert.equal(status.status, "unknown");
-    assert.equal(status.lastResolvedTxHash, "0x6d039369733eaca6d8d9475603449f723c58471577af0efca69565e9e50fed59");
+    assert.equal(status.lastResolvedTxHash, null);
+    assert.match(status.lastArchiveEventLabel || "", /verified proof|archived proof/i);
   } finally {
     delete process.env.RUG_HUNTER_FEED_PATH;
     delete process.env.RUG_HUNTER_STATUS_PATH;

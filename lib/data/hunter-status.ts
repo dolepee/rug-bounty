@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { readHunterFeed, readRuntimeHunterFeed } from "@/lib/data/hunter-feed";
+import { getVerifiedProofHistory, readRuntimeHunterFeed } from "@/lib/data/hunter-feed";
 
 export type HunterRuntimeStatus = {
   runtime: "vps-pm2";
@@ -10,6 +10,8 @@ export type HunterRuntimeStatus = {
   watchedBondIds: string[];
   lastEventLabel: string | null;
   lastEventAtIso: string | null;
+  lastArchiveEventLabel: string | null;
+  lastArchiveEventAtIso: string | null;
   lastResolvedBondId: string | null;
   lastResolvedTxHash: string | null;
 };
@@ -65,12 +67,11 @@ async function readRemoteStatusSnapshot(): Promise<HunterStatusSnapshot | null> 
   }
 }
 
-function deriveFeedFields(entries: Awaited<ReturnType<typeof readHunterFeed>>) {
+function deriveRuntimeFields(entries: Awaited<ReturnType<typeof readRuntimeHunterFeed>>) {
   const latest = entries[0] ?? null;
   const resolvedEntry =
     entries.find((entry) => entry.id.startsWith("live-slash-bond-")) ??
     entries.find((entry) => entry.id.startsWith("slashed-")) ??
-    entries.find((entry) => entry.label.toLowerCase().includes("slashed")) ??
     null;
 
   const resolvedBondId = resolvedEntry
@@ -88,22 +89,33 @@ function deriveFeedFields(entries: Awaited<ReturnType<typeof readHunterFeed>>) {
   };
 }
 
+function deriveArchiveFields(entries: ReturnType<typeof getVerifiedProofHistory>) {
+  const latest = entries[0] ?? null;
+  return {
+    latest,
+  };
+}
+
 export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
-  const [publicEntries, runtimeEntries] = await Promise.all([readHunterFeed(), readRuntimeHunterFeed()]);
-  const { latest, resolvedBondId, resolvedTxHash } = deriveFeedFields(publicEntries);
+  const runtimeEntries = await readRuntimeHunterFeed();
+  const archiveEntries = getVerifiedProofHistory();
+  const { resolvedBondId, resolvedTxHash } = deriveRuntimeFields(runtimeEntries);
+  const { latest: latestArchive } = deriveArchiveFields(archiveEntries);
   const latestRuntime = runtimeEntries[0] ?? null;
   const configuredVaultAddress = getConfiguredVaultAddress();
 
   const remote = await readRemoteStatusSnapshot();
   if (remote) {
-      return {
-        runtime: remote.runtime || "vps-pm2",
-        status: deriveRuntimeStatus(remote.lastTickIso, remote.status),
-        vaultAddress: remote.vaultAddress ?? configuredVaultAddress,
+    return {
+      runtime: remote.runtime || "vps-pm2",
+      status: deriveRuntimeStatus(remote.lastTickIso, remote.status),
+      vaultAddress: remote.vaultAddress ?? configuredVaultAddress,
       lastTickIso: remote.lastTickIso ?? null,
       watchedBondIds: remote.watchedBondIds ?? [],
-      lastEventLabel: latestRuntime?.label ?? latest?.label ?? (remote.lastTickIso ? "hunter heartbeat recorded" : null),
-      lastEventAtIso: latestRuntime?.createdAtIso ?? latest?.createdAtIso ?? remote.lastTickIso ?? null,
+      lastEventLabel: latestRuntime?.label ?? (remote.lastTickIso ? "hunter heartbeat recorded" : null),
+      lastEventAtIso: latestRuntime?.createdAtIso ?? remote.lastTickIso ?? null,
+      lastArchiveEventLabel: latestArchive?.label ?? null,
+      lastArchiveEventAtIso: latestArchive?.createdAtIso ?? null,
       lastResolvedBondId: resolvedBondId,
       lastResolvedTxHash: resolvedTxHash,
     };
@@ -118,8 +130,10 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
       vaultAddress: parsed.vaultAddress ?? null,
       lastTickIso: parsed.lastTickIso ?? null,
       watchedBondIds: parsed.watchedBondIds ?? [],
-      lastEventLabel: latestRuntime?.label ?? latest?.label ?? (parsed.lastTickIso ? "hunter heartbeat recorded" : null),
-      lastEventAtIso: latestRuntime?.createdAtIso ?? latest?.createdAtIso ?? parsed.lastTickIso ?? null,
+      lastEventLabel: latestRuntime?.label ?? (parsed.lastTickIso ? "hunter heartbeat recorded" : null),
+      lastEventAtIso: latestRuntime?.createdAtIso ?? parsed.lastTickIso ?? null,
+      lastArchiveEventLabel: latestArchive?.label ?? null,
+      lastArchiveEventAtIso: latestArchive?.createdAtIso ?? null,
       lastResolvedBondId: resolvedBondId,
       lastResolvedTxHash: resolvedTxHash,
     };
@@ -141,8 +155,10 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
     vaultAddress: configuredVaultAddress,
     lastTickIso: null,
     watchedBondIds: [],
-    lastEventLabel: latestRuntime?.label ?? latest?.label ?? null,
-    lastEventAtIso: latestRuntime?.createdAtIso ?? latest?.createdAtIso ?? null,
+    lastEventLabel: latestRuntime?.label ?? null,
+    lastEventAtIso: latestRuntime?.createdAtIso ?? null,
+    lastArchiveEventLabel: latestArchive?.label ?? null,
+    lastArchiveEventAtIso: latestArchive?.createdAtIso ?? null,
     lastResolvedBondId: resolvedBondId,
     lastResolvedTxHash: resolvedTxHash,
   };

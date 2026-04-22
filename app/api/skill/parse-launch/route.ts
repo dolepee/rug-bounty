@@ -23,9 +23,29 @@ export async function parseLaunchSkillRequest(txHash: string, parser = parseToke
 }
 
 export async function POST(request: Request) {
-  const body = schema.parse(await request.json());
+  let json: unknown;
   try {
-    return NextResponse.json(await parseLaunchSkillRequest(body.txHash));
+    json = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const parsedBody = schema.safeParse(json);
+  if (!parsedBody.success) {
+    return NextResponse.json(
+      {
+        error: "Invalid request body.",
+        issues: parsedBody.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      },
+      { status: 400 },
+    );
+  }
+
+  try {
+    return NextResponse.json(await parseLaunchSkillRequest(parsedBody.data.txHash));
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not parse TokenCreate from this launch tx." },

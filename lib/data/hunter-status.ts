@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { getVerifiedProofHistory, readRuntimeHunterFeed } from "@/lib/data/hunter-feed";
+import { getConfiguredVaultAddress, getLiveVaultBonds } from "@/lib/data/live-bonds";
 
 export type HunterRuntimeStatus = {
   runtime: "vps-pm2";
@@ -19,10 +20,6 @@ export type HunterRuntimeStatus = {
 const onlineWindowMs = 24 * 60 * 60 * 1000;
 const defaultStatusPath = path.join(process.cwd(), "agent", "status.runtime.json");
 const cleanEnv = (value?: string | null) => value?.trim() || undefined;
-
-function getConfiguredVaultAddress() {
-  return cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) || cleanEnv(process.env.RUG_BOUNTY_VAULT_ADDRESS) || null;
-}
 
 function getRemoteStatusUrl() {
   return cleanEnv(process.env.RUG_HUNTER_STATUS_URL) || null;
@@ -98,20 +95,28 @@ function deriveArchiveFields(entries: ReturnType<typeof getVerifiedProofHistory>
 
 export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
   const runtimeEntries = await readRuntimeHunterFeed();
+  const liveVaultBonds = await getLiveVaultBonds();
   const archiveEntries = getVerifiedProofHistory();
   const { resolvedBondId, resolvedTxHash } = deriveRuntimeFields(runtimeEntries);
   const { latest: latestArchive } = deriveArchiveFields(archiveEntries);
   const latestRuntime = runtimeEntries[0] ?? null;
   const configuredVaultAddress = getConfiguredVaultAddress();
+  const inferredWatchedBondIds = liveVaultBonds
+    .filter((bond) => bond.status === "ACTIVE" || bond.status === "AT_RISK")
+    .map((bond) => bond.id);
 
   const remote = await readRemoteStatusSnapshot();
   if (remote) {
+    const watchedBondIds =
+      remote.watchedBondIds?.length || remote.vaultAddress !== configuredVaultAddress
+        ? remote.watchedBondIds ?? []
+        : inferredWatchedBondIds;
     return {
       runtime: remote.runtime || "vps-pm2",
       status: deriveRuntimeStatus(remote.lastTickIso, remote.status),
       vaultAddress: remote.vaultAddress ?? configuredVaultAddress,
       lastTickIso: remote.lastTickIso ?? null,
-      watchedBondIds: remote.watchedBondIds ?? [],
+      watchedBondIds,
       lastEventLabel: latestRuntime?.label ?? (remote.lastTickIso ? "hunter heartbeat recorded" : null),
       lastEventAtIso: latestRuntime?.createdAtIso ?? remote.lastTickIso ?? null,
       lastArchiveEventLabel: latestArchive?.label ?? null,
@@ -129,7 +134,10 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
       status: deriveRuntimeStatus(parsed.lastTickIso, parsed.status),
       vaultAddress: parsed.vaultAddress ?? null,
       lastTickIso: parsed.lastTickIso ?? null,
-      watchedBondIds: parsed.watchedBondIds ?? [],
+      watchedBondIds:
+        parsed.watchedBondIds?.length || parsed.vaultAddress !== configuredVaultAddress
+          ? parsed.watchedBondIds ?? []
+          : inferredWatchedBondIds,
       lastEventLabel: latestRuntime?.label ?? (parsed.lastTickIso ? "hunter heartbeat recorded" : null),
       lastEventAtIso: latestRuntime?.createdAtIso ?? parsed.lastTickIso ?? null,
       lastArchiveEventLabel: latestArchive?.label ?? null,
@@ -154,7 +162,7 @@ export async function getHunterRuntimeStatus(): Promise<HunterRuntimeStatus> {
     status,
     vaultAddress: configuredVaultAddress,
     lastTickIso: null,
-    watchedBondIds: [],
+    watchedBondIds: inferredWatchedBondIds,
     lastEventLabel: latestRuntime?.label ?? null,
     lastEventAtIso: latestRuntime?.createdAtIso ?? null,
     lastArchiveEventLabel: latestArchive?.label ?? null,

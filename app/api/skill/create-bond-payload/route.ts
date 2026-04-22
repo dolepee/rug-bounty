@@ -25,6 +25,9 @@ export async function buildCreateBondPayload(body: z.infer<typeof schema>, parse
     }
     return getAddress(wallet);
   });
+  if (new Set(declaredCreatorWallets).size !== declaredCreatorWallets.length) {
+    throw new Error("Declared creator wallets must be unique.");
+  }
   const parsed = await parser(body.launchTxHash as Hex);
 
   if (body.token && getAddress(body.token) !== getAddress(parsed.token)) {

@@ -88,6 +88,7 @@ contract RugBountyVault {
     error InvalidLaunchWindow();
     error InvalidExpiry();
     error InvalidDeclaredWallets();
+    error DuplicateDeclaredWallet();
     error CreatorWalletMissing();
     error CreatorBalanceBelowFloor();
     error CreatorBalanceStillAtOrAboveFloor();
@@ -120,6 +121,9 @@ contract RugBountyVault {
         bool senderDeclared = false;
         for (uint256 i = 0; i < declaredCreatorWallets.length; i++) {
             if (declaredCreatorWallets[i] == address(0)) revert InvalidDeclaredWallets();
+            for (uint256 j = 0; j < i; j++) {
+                if (declaredCreatorWallets[i] == declaredCreatorWallets[j]) revert DuplicateDeclaredWallet();
+            }
             if (declaredCreatorWallets[i] == msg.sender) {
                 senderDeclared = true;
             }

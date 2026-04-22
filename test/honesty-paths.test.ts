@@ -89,6 +89,37 @@ test("create bond payload rejects manual launch mismatches and uses parsed Four.
   assert.equal(result.proof.launchProof.launchTimestamp, mockParsedLaunch.launchTime.toString());
 });
 
+test("create bond payload rejects duplicate declared creator wallets", async () => {
+  const route = getModuleExports<{
+    buildCreateBondPayload: (
+      body: {
+        launchTxHash: string;
+        declaredCreatorWallets: string[];
+        oathText: string;
+        declaredRetainedBalance: string;
+        expiresInSeconds: number;
+        bondAmountBnb: string;
+      },
+      parser: (txHash: `0x${string}`) => Promise<typeof mockParsedLaunch>,
+    ) => Promise<unknown>;
+  }>(await import("../app/api/skill/create-bond-payload/route.ts"));
+
+  await assert.rejects(
+    route.buildCreateBondPayload(
+      {
+        launchTxHash: mockParsedLaunch.txHash,
+        declaredCreatorWallets: [mockParsedLaunch.creator, mockParsedLaunch.creator],
+        oathText: "I will hold at least 1.05M tokens for 15 minutes.",
+        declaredRetainedBalance: "1050000000000000000000000",
+        expiresInSeconds: 900,
+        bondAmountBnb: "0.003",
+      },
+      async () => mockParsedLaunch,
+    ),
+    /must be unique/,
+  );
+});
+
 test("classify route keeps enforceable and non-enforceable promises separate", async () => {
   const route = getModuleExports<{ POST: (request: Request) => Promise<Response> }>(await import("../app/api/oath/classify/route.ts"));
   const response = await route.POST(

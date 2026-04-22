@@ -365,6 +365,19 @@ test("createBond reverts when the bond amount is below the minimum", async () =>
   }
 });
 
+test("createBond reverts when the declared creator wallet list contains duplicates", async () => {
+  const fixture = await createFixture();
+  try {
+    await assert.rejects(
+      createBond(fixture, {
+        declaredCreatorWallets: [fixture.creator.account.address, fixture.creator.account.address],
+      }),
+    );
+  } finally {
+    await fixture.close();
+  }
+});
+
 async function createFixture() {
   const provider = ganache.provider({
     chain: { chainId: 31337 },
@@ -422,6 +435,7 @@ async function createBond(fixture, options = {}) {
   const launchTimestamp = Number(block.timestamp);
   const expiresInSeconds = options.expiresInSeconds ?? 3600;
   const bondAmount = options.bondAmount ?? parseEther("1");
+  const declaredCreatorWallets = options.declaredCreatorWallets ?? [fixture.creator.account.address];
   const hash = await fixture.creator.walletClient.writeContract({
     address: fixture.vaultAddress,
     abi: fixture.vaultArtifact.abi,
@@ -430,7 +444,7 @@ async function createBond(fixture, options = {}) {
       fixture.tokenAddress,
       "0x" + "11".repeat(32),
       BigInt(launchTimestamp),
-      [fixture.creator.account.address],
+      declaredCreatorWallets,
       FLOOR,
       "I will hold at least 1.05M tokens.",
       keccak256(stringToHex("CREATOR_WALLET_FLOOR")),

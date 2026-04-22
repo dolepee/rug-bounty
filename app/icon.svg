@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RugBounty icon">
+  <rect width="64" height="64" rx="14" fill="#0A0A0A" />
+  <rect x="3" y="3" width="58" height="58" rx="11" fill="none" stroke="#F3BA2F" stroke-width="3" />
+  <path d="M10 15H54" stroke="#F3BA2F" stroke-width="5" stroke-linecap="round" />
+  <path d="M10 49H54" stroke="#F3BA2F" stroke-width="5" stroke-linecap="round" />
+  <text
+    x="32"
+    y="39"
+    text-anchor="middle"
+    fill="#FFFFFF"
+    font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace"
+    font-size="23"
+    font-weight="700"
+    letter-spacing="-1"
+  >
+    RB
+  </text>
+</svg>

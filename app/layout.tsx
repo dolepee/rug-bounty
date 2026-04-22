@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
 import Link from "next/link";
@@ -5,6 +6,16 @@ import "./globals.css";
 
 const bodyFont = Manrope({ variable: "--font-body", subsets: ["latin"] });
 const mono = IBM_Plex_Mono({ variable: "--font-mono", subsets: ["latin"], weight: ["400", "500", "600"] });
+
+export const metadata: Metadata = {
+  title: "RugBounty",
+  description: "Bonded launch trust for Four.Meme creators on BNB mainnet.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
+};
 
 const navLinks = [
   { href: "/", label: "Home" },

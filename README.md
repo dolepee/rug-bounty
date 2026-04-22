@@ -2,7 +2,7 @@
 
 RugBounty is a bond-backed accountability layer for Four.Meme launches on BNB Chain.
 
-Creators lock BNB behind one public promise about their own bag. If their declared creator-wallet balance drops below a public floor before expiry, any hunter can call the vault and take the bond. A live Rug Hunter Agent watches active bonds, flags breaches onchain, and monitors the permissionless slash path.
+Creators lock BNB behind one public promise about a declared wallet set. If that declared balance drops below a public floor before expiry, any hunter can call the vault and take the bond. A live Rug Hunter Agent watches active bonds, flags breaches onchain, and monitors the permissionless slash path.
 
 Positioning: `Bonded Launches for Four.Meme`
 
@@ -27,11 +27,19 @@ Not claimed:
 - full rug detection
 - hidden-wallet detection
 - onchain proof of Four.Meme provenance inside the vault itself; the official flow verifies real Four.Meme launches before bond creation
-- during the hackathon demo period, `PROTOCOL_TREASURY` is author-controlled; production deployments should point the 20% protocol leg at a burn, DAO, or multisig
+- proof that every declared wallet is creator-controlled; the vault proves `msg.sender` is included, then monitors the declared wallet set
 
-## Verified mainnet proof set
+## Active vault
 
-Final vault:
+Current funded system:
+- `0x8456e375259faab451c6906ba8ac22b1cd8ae1c8`
+- 20% protocol leg routes to the burn address `0x000000000000000000000000000000000000dEaD`
+- duplicate declared wallets are rejected onchain
+- no current-vault public funded proof has been published yet
+
+## Legacy proof archive
+
+Archived proof vault:
 - `0xe010a3457001a0a8a6f2e69cdc962e705dbdedea`
 
 Slash proof, `FinalSlash / FSLH`:
@@ -55,7 +63,7 @@ Budget note:
 - the primitive itself is not tied to small bond sizes
 
 Archived earlier proof:
-- older rehearsal loops (`PATCH`, `SEAL`, `BIBI`) remain real onchain history, but the current public proof set is anchored to the final `FSLH/FRFD` vault above
+- older rehearsal loops (`PATCH`, `SEAL`, `BIBI`) remain real onchain history alongside the archived `FSLH/FRFD` proof set above
 
 ## Product surface
 
@@ -73,8 +81,8 @@ Included in this repo:
 - Ganache-backed contract tests for create / slash / refund / revert paths
 
 Mainnet state:
-- one real slashed bond on the final vault (`FSLH`)
-- one real refunded bond on the final vault (`FRFD`)
+- active vault is live and ready for fresh funded tests
+- legacy archive contains one real slashed bond (`FSLH`) and one real refunded bond (`FRFD`)
 
 ## Commands
 

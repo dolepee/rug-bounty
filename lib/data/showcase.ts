@@ -4,7 +4,7 @@ import { getLiveBondById, type LiveBondRecord } from "@/lib/data/live-bonds";
 export const legacyProofVaultAddress = "0xe010a3457001a0a8a6f2e69cdc962e705dbdedea" as Address;
 
 export const showcaseProof = {
-  bondId: "0",
+  bondId: "archived-fslh",
   launchTxHash: "0x9dffb11791807de1d0ef3ebd81a5df68bb6fab9fdaad1118615d42b11ab0c1b9" as Hex,
   bondTxHash: "0x9a124548380e3b37efbe9b6fb6f6b34f4b78c496d1709ad1b3aaf00eda3a09a2" as Hex,
   breachFlagTxHash: "0x35eb0ec84eaf121d454a0b68abc7b7994121f466975505c901ec645fb15f762a" as Hex,
@@ -17,7 +17,7 @@ export const showcaseProof = {
 };
 
 export const refundProof = {
-  bondId: "1",
+  bondId: "archived-frfd",
   launchTxHash: "0xaaf8cd23968cdcab641e522b0b09c771a660940bdae46e514a2bca9f06da25b4" as Hex,
   bondTxHash: "0x4fa2340dbe8fb66e0af83053d596354efd805b5594483356aa044435a1b8af28" as Hex,
   refundTxHash: "0x18c2cc2b0205c21dc304ae2872a9bb6ce9b3aad54ecce765d27efe11d331103f" as Hex,
@@ -59,7 +59,7 @@ export type PublicHunterFeedEntry = {
 };
 
 const staticShowcaseBond: ShowcaseBond = {
-  id: "0",
+  id: showcaseProof.bondId,
   tokenName: "FinalSlash",
   ticker: "$FSLH",
   tokenAddress: "0xC6E7AC592b1622a76C12e07dA82675E5d64a4444" as Address,
@@ -95,7 +95,7 @@ const archivedShowcaseBond: ShowcaseBond = {
 };
 
 const staticRefundBond: ShowcaseBond = {
-  id: "1",
+  id: refundProof.bondId,
   tokenName: "FinalRefund",
   ticker: "$FRFD",
   tokenAddress: "0x116aE2FA9068459938443f667E387e1794734444" as Address,
@@ -112,36 +112,12 @@ const staticRefundBond: ShowcaseBond = {
   refundTxHash: refundProof.refundTxHash,
 };
 
-async function overlayCurrentVaultState(fallback: ShowcaseBond): Promise<ShowcaseBond> {
-  const live = await getLiveBondById(fallback.id);
-  if (!live) {
-    return fallback;
-  }
-
-  return {
-    ...fallback,
-    creator: live.creator,
-    tokenAddress: live.tokenAddress,
-    declaredCreatorWallets: live.declaredCreatorWallets,
-    tokenName: live.tokenName,
-    ticker: live.ticker,
-    currentBondAmountBnb: live.bondAmountBnb,
-    liveCurrentBalance: live.currentBalance,
-    liveStatus: live.status,
-    liveExpiresAtIso: live.expiresAtIso,
-    notes: fallback.notes,
-    bondTxHash: fallback.bondTxHash,
-    slashTxHash: fallback.slashTxHash,
-    refundTxHash: fallback.refundTxHash,
-  };
-}
-
 export async function getPrimaryShowcaseBond(): Promise<ShowcaseBond | null> {
-  return overlayCurrentVaultState(staticShowcaseBond);
+  return staticShowcaseBond;
 }
 
 export async function getRefundShowcaseBond(): Promise<ShowcaseBond | null> {
-  return overlayCurrentVaultState(staticRefundBond);
+  return staticRefundBond;
 }
 
 export async function getCurrentMainnetProofs(): Promise<ShowcaseBond[]> {
@@ -159,8 +135,7 @@ export async function getDirectoryBonds(): Promise<ShowcaseBond[]> {
 }
 
 export async function getBrokenOathBonds(): Promise<ShowcaseBond[]> {
-  const live = await getPrimaryShowcaseBond();
-  return live?.status === "SLASHED" ? [live, archivedShowcaseBond] : [staticShowcaseBond, archivedShowcaseBond];
+  return [staticShowcaseBond, archivedShowcaseBond];
 }
 
 export async function getBondForPage(id: string): Promise<ShowcaseBond | undefined> {

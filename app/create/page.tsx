@@ -330,6 +330,14 @@ export default function CreateBondPage() {
       return;
     }
 
+    const launchTimestamp = BigInt(launchEvidence.launchTime);
+    const expiresAt = launchTimestamp + BigInt(compiled.rule.expiresInSeconds);
+    const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
+    if (expiresAt <= nowSeconds) {
+      setSubmitError("Oath duration has already elapsed since launch. Use a more recent launch or a longer duration.");
+      return;
+    }
+
     setSubmitLoading(true);
     try {
       const { walletClient, address } = await connectInjectedWallet();
@@ -358,8 +366,6 @@ export default function CreateBondPage() {
         ),
       );
 
-      const launchTimestamp = BigInt(launchEvidence.launchTime);
-      const expiresAt = launchTimestamp + BigInt(compiled.rule.expiresInSeconds);
       const hash = await walletClient.writeContract({
         address: vaultAddress,
         abi: rugBountyVaultAbi,

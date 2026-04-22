@@ -194,6 +194,20 @@ test("DGrid classification parser accepts fenced JSON with null suggested rewrit
   assert.equal(result[1]?.suggestedRewrite, undefined);
 });
 
+test("archived proof ids are nonnumeric so they cannot collide with live bond ids", async () => {
+  const showcaseModule = getModuleExports<{
+    showcaseProof: { bondId: string };
+    refundProof: { bondId: string };
+    archivedProof: { bondId: string };
+  }>(await import("../lib/data/showcase.ts"));
+
+  assert.match(showcaseModule.showcaseProof.bondId, /^archived-/);
+  assert.match(showcaseModule.refundProof.bondId, /^archived-/);
+  assert.match(showcaseModule.archivedProof.bondId, /^archived-/);
+  assert.doesNotMatch(showcaseModule.showcaseProof.bondId, /^\d+$/);
+  assert.doesNotMatch(showcaseModule.refundProof.bondId, /^\d+$/);
+});
+
 test("public hunter feed falls back to verified proof history when no runtime feed file exists", async () => {
   const tempDir = path.join(os.tmpdir(), `rug-bounty-feed-empty-${Date.now()}`);
   await mkdir(tempDir, { recursive: true });

@@ -156,7 +156,7 @@ export default async function HomePage() {
           <div>
             <div className="label-mono">Current vault receipts</div>
             <h2 className="mt-3 font-display text-3xl md:text-4xl font-extrabold tracking-tight">
-              Fresh tests should surface here automatically.
+              Live receipts update automatically.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/70">
               The active burn-address vault is the official funded system. When a new bond is created, refunded, or slashed on the current vault, it belongs in this section without rewriting the site narrative.
@@ -207,7 +207,7 @@ export default async function HomePage() {
             <div>
               <div className="label-mono">Legacy archive</div>
               <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-                Earlier public receipts stay available as history.
+                Legacy receipts stay available.
               </h2>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/72">
                 The previous public vault already proved slash and refund outcomes onchain. That archive remains public for inspection, but it is no longer the active funded path.

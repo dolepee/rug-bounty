@@ -53,7 +53,7 @@ export default async function DirectoryPage() {
         {currentVaultBonds.length ? (
           <BondTable
             bonds={currentVaultBonds}
-            bondHref={(bond) => `/bond/${bond.id}`}
+            bondHref={(bond) => `/bond/${bond.id}${"bondTxHash" in bond && bond.bondTxHash ? `?bondTxHash=${bond.bondTxHash}` : ""}`}
           />
         ) : (
           <div className="mt-6 hazard-card p-6">
@@ -105,7 +105,7 @@ export default async function DirectoryPage() {
   );
 }
 
-function BondTable<T extends { id: string; ticker: string; tokenName: string; bondAmountBnb: string; declaredFloor: string; status: string; expiresAtIso: string }>({
+function BondTable<T extends { id: string; ticker: string; tokenName: string; bondAmountBnb: string; originalBondAmountBnb?: string; declaredFloor: string; status: string; expiresAtIso: string }>({
   bonds,
   bondHref,
 }: {
@@ -135,7 +135,7 @@ function BondTable<T extends { id: string; ticker: string; tokenName: string; bo
             </div>
           </div>
           <div className="font-mono text-sm text-white/90">
-            {Number(bond.bondAmountBnb).toFixed(4)} <span className="text-[var(--fg-muted)]">BNB</span>
+            {Number(bond.originalBondAmountBnb ?? bond.bondAmountBnb).toFixed(4)} <span className="text-[var(--fg-muted)]">BNB</span>
           </div>
           <div className="font-mono text-sm text-white/90">{formatNumber(bond.declaredFloor)}</div>
           <div>

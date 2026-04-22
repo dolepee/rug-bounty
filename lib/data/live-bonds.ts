@@ -13,6 +13,8 @@ export type LiveBondRecord = {
   creator: Address;
   declaredCreatorWallets: Address[];
   bondAmountBnb: string;
+  originalBondAmountBnb?: string;
+  bondTxHash?: Hex;
   declaredFloor: string;
   currentBalance: string;
   status: "ACTIVE" | "AT_RISK" | "SLASHED" | "REFUNDED";
@@ -20,6 +22,18 @@ export type LiveBondRecord = {
   launchTxHash: Hex;
   notes: string;
 };
+
+const bondCreatedEvent = rugBountyVaultAbi.find((entry) => entry.type === "event" && entry.name === "BondCreated");
+
+function getConfiguredStartBlock(): bigint | null {
+  const raw = cleanEnv(process.env.RUG_BOUNTY_START_BLOCK);
+  if (!raw) return null;
+  try {
+    return BigInt(raw);
+  } catch {
+    return null;
+  }
+}
 
 export function getConfiguredVaultAddress(): Address | null {
   const raw = cleanEnv(process.env.NEXT_PUBLIC_RUG_BOUNTY_VAULT_ADDRESS) || cleanEnv(process.env.RUG_BOUNTY_VAULT_ADDRESS);
@@ -54,7 +68,7 @@ export async function getLiveBondById(id: string): Promise<LiveBondRecord | null
       return null;
     }
 
-    const [currentBalance, name, symbol, decimals] = await Promise.all([
+    const [currentBalance, name, symbol, decimals, createdLog] = await Promise.all([
       client.readContract({
         address: vaultAddress,
         abi: rugBountyVaultAbi,
@@ -76,10 +90,16 @@ export async function getLiveBondById(id: string): Promise<LiveBondRecord | null
         abi: erc20MetadataAbi,
         functionName: "decimals",
       }),
+      getBondCreatedLog(vaultAddress, bondId),
     ]);
 
     const baseStatus = bond.status === 1 ? "SLASHED" : bond.status === 2 ? "REFUNDED" : "ACTIVE";
     const status = baseStatus === "ACTIVE" && currentBalance < bond.declaredRetainedBalance ? "AT_RISK" : baseStatus;
+    const originalBondAmountBnb =
+      createdLog && typeof createdLog.args.bondAmount === "bigint"
+        ? formatEther(createdLog.args.bondAmount)
+        : undefined;
+    const bondTxHash = createdLog?.transactionHash;
 
     return {
       id,
@@ -89,6 +109,8 @@ export async function getLiveBondById(id: string): Promise<LiveBondRecord | null
       creator: getAddress(bond.creator),
       declaredCreatorWallets: bond.declaredCreatorWallets.map((wallet) => getAddress(wallet)),
       bondAmountBnb: formatEther(bond.bondAmount),
+      ...(originalBondAmountBnb ? { originalBondAmountBnb } : {}),
+      ...(bondTxHash ? { bondTxHash } : {}),
       declaredFloor: formatUnits(bond.declaredRetainedBalance, decimals),
       currentBalance: formatUnits(currentBalance, decimals),
       status,
@@ -103,6 +125,29 @@ export async function getLiveBondById(id: string): Promise<LiveBondRecord | null
               ? "Live vault state is below the declared floor and can be slashed permissionlessly."
               : "Live vault state is above the declared floor.",
     };
+  } catch {
+    return null;
+  }
+}
+
+async function getBondCreatedLog(vaultAddress: Address, bondId: bigint) {
+  if (!bondCreatedEvent) {
+    return null;
+  }
+
+  const startBlock = getConfiguredStartBlock();
+  if (startBlock === null) {
+    return null;
+  }
+
+  try {
+    const logs = await getBscPublicClient().getLogs({
+      address: vaultAddress,
+      event: bondCreatedEvent,
+      args: { bondId },
+      fromBlock: startBlock,
+    });
+    return logs[0] ?? null;
   } catch {
     return null;
   }

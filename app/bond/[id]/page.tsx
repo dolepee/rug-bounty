@@ -187,7 +187,7 @@ export default async function BondDetailPage({
             </div>
           </div>
 
-          <Link href={`/certificate/${bond.id}`} className="hazard-card p-6 md:p-8 group">
+          <Link href={`/certificate/${bond.id}${resolvedBondTxHash ? `?bondTxHash=${resolvedBondTxHash}` : ""}`} className="hazard-card p-6 md:p-8 group">
             <div className="label-mono text-[var(--yellow)]">Share card</div>
             <h3 className="mt-3 hazard-title--sm">Open certificate.</h3>
             <p className="mt-4 text-sm leading-relaxed text-white/70">

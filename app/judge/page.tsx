@@ -24,7 +24,7 @@ const aiRows = [
 const limits = [
   "This does not detect every rug.",
   "This does not detect hidden undeclared wallets.",
-  "The vault records launch metadata for display, but does not prove Four.Meme history onchain.",
+  "The official flow verifies a real Four.Meme launch before bond creation, but the vault itself does not prove Four.Meme provenance onchain.",
   "Slash is permissionless. A third-party hunter can beat the watcher to the bounty.",
   "The current vault routes the 20% protocol leg to the burn address.",
 ];
@@ -251,6 +251,9 @@ export default async function JudgeModePage() {
               ) : null}
               <Link href="/create" className="btn-outline">
                 Open bond flow <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+              <Link href="/broken-oaths" className="btn-outline">
+                Open slashed archive <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           </div>

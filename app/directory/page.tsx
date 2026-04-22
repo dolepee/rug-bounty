@@ -32,6 +32,11 @@ export default async function DirectoryPage() {
               <StatPill label="Refunded" value={String(refundedCount)} dot="lime" />
             </div>
           </div>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Link href="/broken-oaths" className="btn-outline">
+              Open slashed-only view <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </section>
 

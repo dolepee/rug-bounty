@@ -20,7 +20,6 @@ export const metadata: Metadata = {
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/directory", label: "Proofs" },
-  { href: "/broken-oaths", label: "Slashed" },
   { href: "/create", label: "Create" },
   { href: "/judge", label: "Judge" },
 ];

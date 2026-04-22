@@ -146,7 +146,7 @@ export default async function BondDetailPage({
       </section>
 
       <section className="section-shell mt-6">
-        <div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+        <div className={`grid gap-6 ${variant === "slashed" ? "md:grid-cols-[1.05fr_0.95fr_0.95fr]" : "md:grid-cols-[1.2fr_0.8fr]"}`}>
           <div className="hazard-card p-6 md:p-8">
             <div className="label-mono">Declared creator wallets</div>
             <div className="mt-5 space-y-3">
@@ -179,6 +179,19 @@ export default async function BondDetailPage({
               Render <ArrowUpRight className="h-3 w-3" />
             </div>
           </Link>
+
+          {variant === "slashed" ? (
+            <Link href="/broken-oaths" className="hazard-card hazard-card--slashed p-6 md:p-8 group">
+              <div className="label-mono text-[var(--red)]">Slashed archive</div>
+              <h3 className="mt-3 hazard-title--sm">Open the wall.</h3>
+              <p className="mt-4 text-sm leading-relaxed text-white/70">
+                View this bond in the slashed-only consequence surface alongside every other public breach.
+              </p>
+              <div className="mt-5 inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--red)] group-hover:text-white">
+                Open slashed view <ArrowUpRight className="h-3 w-3" />
+              </div>
+            </Link>
+          ) : null}
         </div>
       </section>
 

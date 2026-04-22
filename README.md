@@ -26,7 +26,7 @@ When configured, the AI layer uses DGrid's OpenAI-compatible gateway first and f
 Not claimed:
 - full rug detection
 - hidden-wallet detection
-- onchain verification of historical Four.Meme launch events inside the vault
+- onchain proof of Four.Meme provenance inside the vault itself; the official flow verifies real Four.Meme launches before bond creation
 - during the hackathon demo period, `PROTOCOL_TREASURY` is author-controlled; production deployments should point the 20% protocol leg at a burn, DAO, or multisig
 
 ## Verified mainnet proof set

@@ -45,7 +45,7 @@ export default async function DirectoryPage() {
             <div className="label-mono">Current vault</div>
             <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">Live receipts</h2>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
-              New funded tests on the active vault should show up here.
+              Receipts appear here automatically.
             </p>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default async function DirectoryPage() {
             <div className="label-mono">Archive</div>
             <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">Past receipts</h2>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75">
-              Earlier public receipts kept for reference.
+              Archived receipts stay here.
             </p>
           </div>
         </div>

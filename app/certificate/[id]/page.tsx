@@ -1,18 +1,30 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getBondForPage } from "@/lib/data/showcase";
+import { getBscPublicClient } from "@/lib/chain/bsc";
 import { bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 import { CopyButton } from "@/app/components/copy-button";
 
 const cleanEnv = (value?: string | null) => value?.trim() || undefined;
 const appUrl = cleanEnv(process.env.NEXT_PUBLIC_APP_URL) || "https://rug-bounty.vercel.app";
 
-export default async function CertificatePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CertificatePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ bondTxHash?: string }>;
+}) {
   const { id } = await params;
+  const { bondTxHash } = await searchParams;
   const bond = await getBondForPage(id);
   if (!bond) notFound();
 
-  const bondAmountLabel = Number(bond.bondAmountBnb).toFixed(4);
+  const resolvedBondTxHash = bondTxHash || ("bondTxHash" in bond ? bond.bondTxHash : undefined);
+  const originalBondAmountBnb = resolvedBondTxHash
+    ? await getOriginalBondAmountBnb(resolvedBondTxHash).catch(() => null)
+    : null;
+  const bondAmountLabel = Number((originalBondAmountBnb ?? bond.bondAmountBnb)).toFixed(4);
   const variant = statusVariant(bond.status);
   const gaugeFill = variant === "refunded" ? "lime" : variant === "slashed" ? "red" : "yellow";
   const floor = Number(bond.declaredFloor);
@@ -108,8 +120,8 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
                   </p>
                   <div className="mt-5 flex flex-wrap gap-2">
                     <ReceiptPill label="Launch" href={bscScanTxUrl(bond.launchTxHash)} value={shortHash(bond.launchTxHash)} kind="muted" />
-                    {"bondTxHash" in bond && bond.bondTxHash ? (
-                      <ReceiptPill label="Bond" href={bscScanTxUrl(bond.bondTxHash)} value={shortHash(bond.bondTxHash)} kind="yellow" />
+                    {resolvedBondTxHash ? (
+                      <ReceiptPill label="Bond" href={bscScanTxUrl(resolvedBondTxHash)} value={shortHash(resolvedBondTxHash)} kind="yellow" />
                     ) : null}
                     {"slashTxHash" in bond && bond.slashTxHash ? (
                       <ReceiptPill label="Slash" href={bscScanTxUrl(bond.slashTxHash)} value={shortHash(bond.slashTxHash)} kind="red" />
@@ -132,7 +144,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
                   </p>
                   <div className="mt-5 flex flex-wrap gap-2">
                     <CopyButton
-                      text={absoluteCertificateUrl}
+                      text={resolvedBondTxHash ? `${absoluteCertificateUrl}?bondTxHash=${resolvedBondTxHash}` : absoluteCertificateUrl}
                       label="Copy certificate link"
                       className="btn-outline text-[11px]"
                     />
@@ -156,6 +168,15 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
       </div>
     </section>
   );
+}
+
+async function getOriginalBondAmountBnb(txHash: string): Promise<string | null> {
+  try {
+    const tx = await getBscPublicClient().getTransaction({ hash: txHash as `0x${string}` });
+    return tx.value ? (Number(tx.value) / 1e18).toString() : "0";
+  } catch {
+    return null;
+  }
 }
 
 function MetricTile({

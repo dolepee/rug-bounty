@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { getBondForPage } from "@/lib/data/showcase";
+import { getBscPublicClient } from "@/lib/chain/bsc";
 import { bscScanAddressUrl, bscScanTxUrl, fourMemeTokenUrl } from "@/lib/fourmeme/links";
 import { BondActionPanel } from "@/app/bond/[id]/bond-action-panel";
 import { BondTimePanel } from "@/app/bond/[id]/bond-time-panel";
@@ -24,8 +25,15 @@ export default async function BondDetailPage({
   const slashHash = "slashTxHash" in bond ? bond.slashTxHash : undefined;
   const refundHash = "refundTxHash" in bond ? bond.refundTxHash : undefined;
   const variant = statusVariant(bond.status);
+  const isTerminalLiveBond = /^\d+$/.test(bond.id) && (bond.status === "SLASHED" || bond.status === "REFUNDED");
 
-  const bondAmount = Number(bond.bondAmountBnb).toFixed(4);
+  const originalBondAmountBnb = resolvedBondTxHash
+    ? await getOriginalBondAmountBnb(resolvedBondTxHash).catch(() => null)
+    : null;
+
+  const bondAmount = Number((originalBondAmountBnb ?? bond.bondAmountBnb)).toFixed(4);
+  const currentBondAmount = Number(bond.bondAmountBnb).toFixed(4);
+  const bondAmountLabel = originalBondAmountBnb || !isTerminalLiveBond ? "Bond staked" : "Remaining bond balance";
   const floor = Number(bond.declaredFloor);
   const proofBalance = Number(bond.currentBalance);
   const liveBalance = bond.liveCurrentBalance ? Number(bond.liveCurrentBalance) : null;
@@ -69,11 +77,21 @@ export default async function BondDetailPage({
         <div className="hazard-card p-6 md:p-8">
           <div className="grid gap-8 md:grid-cols-[1.1fr_0.9fr]">
             <div>
-              <div className="label-mono">Bond staked</div>
+              <div className="label-mono">{bondAmountLabel}</div>
               <div className="giant giant--hero mt-2 text-[var(--yellow)]">
                 {bondAmount}
                 <span className="ml-2 text-2xl text-white/50">BNB</span>
               </div>
+              {originalBondAmountBnb && Number(currentBondAmount) === 0 ? (
+                <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-white/55">
+                  Remaining bond balance after settlement: {currentBondAmount} BNB
+                </div>
+              ) : null}
+              {!originalBondAmountBnb && isTerminalLiveBond ? (
+                <div className="mt-3 text-xs leading-relaxed text-white/58">
+                  The live vault zeroes the bond balance after slash or refund settlement. This field now shows remaining onchain bond balance, not the original amount staked.
+                </div>
+              ) : null}
               <div className="mt-6 grid grid-cols-2 gap-6">
                 <div>
                   <div className="label-mono">Declared floor</div>
@@ -243,4 +261,13 @@ function formatNumber(raw: string): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(3)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString();
+}
+
+async function getOriginalBondAmountBnb(txHash: string): Promise<string | null> {
+  try {
+    const tx = await getBscPublicClient().getTransaction({ hash: txHash as `0x${string}` });
+    return tx.value ? (Number(tx.value) / 1e18).toString() : "0";
+  } catch {
+    return null;
+  }
 }

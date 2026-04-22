@@ -606,7 +606,7 @@ export default function CreateBondPage() {
                         <Link href={`/bond/${createdBondId}?bondTxHash=${txHash}`} className="btn-outline text-[11px]">
                           Open proof page <ArrowUpRight className="h-3 w-3" />
                         </Link>
-                        <Link href={`/certificate/${createdBondId}`} className="btn-outline text-[11px]">
+                        <Link href={`/certificate/${createdBondId}?bondTxHash=${txHash}`} className="btn-outline text-[11px]">
                           Open certificate <ArrowUpRight className="h-3 w-3" />
                         </Link>
                         <CopyButton
@@ -615,7 +615,7 @@ export default function CreateBondPage() {
                           className="btn-outline text-[11px]"
                         />
                         <CopyButton
-                          text={`${appUrl}/certificate/${createdBondId}`}
+                          text={`${appUrl}/certificate/${createdBondId}?bondTxHash=${txHash}`}
                           label="Copy cert link"
                           className="btn-outline text-[11px]"
                         />
